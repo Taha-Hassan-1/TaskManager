@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Options;
 
 namespace TaskManager.Tests;
 
@@ -29,6 +30,6 @@ public class StartupSmokeTests : IClassFixture<WebApplicationFactory<Program>>
         using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(b => b
             .UseSetting("Jwt:Key", "")
             .UseSetting("ConnectionStrings:DefaultConnection", "Server=(local);Database=unused"));
-        Assert.Throws<InvalidOperationException>(() => factory.CreateClient());
+        Assert.Throws<OptionsValidationException>(() => factory.CreateClient());
     }
 }
