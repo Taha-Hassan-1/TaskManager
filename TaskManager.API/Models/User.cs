@@ -7,5 +7,7 @@ public class User
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public ICollection<TaskItem> Tasks { get; set; } = new List<TaskItem>();
+
+    public ICollection<BoardMember> Memberships { get; set; } = new List<BoardMember>();
+    public ICollection<TaskItem> CreatedTasks { get; set; } = new List<TaskItem>();
 }

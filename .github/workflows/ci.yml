@@ -8,6 +8,17 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Ci-only-Passw0rd!"
+        ports:
+          - 1433:1433
+    env:
+      # Migration tests create and drop their own throwaway databases on this server.
+      TEST_SQL_CONNECTION: "Server=localhost,1433;User Id=sa;Password=Ci-only-Passw0rd!;TrustServerCertificate=True"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
