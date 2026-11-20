@@ -82,6 +82,30 @@ describe('AuthService', () => {
     });
   });
 
+  describe('freshAccessToken (used by the live connection)', () => {
+    it('returns the current token while it has time left', async () => {
+      api['login'].mockResolvedValue(session('t1'));
+      await auth.login({ email: 'a@b.c', password: 'x' });
+
+      expect(await auth.freshAccessToken()).toBe('t1');
+      expect(api['refresh']).not.toHaveBeenCalled();
+    });
+
+    it('refreshes first when the token is about to expire', async () => {
+      api['login'].mockResolvedValue({ ...session('old'), expiresAt: new Date(Date.now() + 10_000).toISOString() });
+      api['refresh'].mockResolvedValue(session('new'));
+      await auth.login({ email: 'a@b.c', password: 'x' });
+
+      expect(await auth.freshAccessToken()).toBe('new');
+    });
+
+    it('refreshes when there is no token at all, and returns null when that fails', async () => {
+      api['refresh'].mockRejectedValue(new Error('401'));
+      expect(await auth.freshAccessToken()).toBeNull();
+      expect(api['refresh']).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('logout ends the local session even when the server cannot be reached', async () => {
     api['login'].mockResolvedValue(session('t1'));
     api['logout'].mockRejectedValue(new Error('offline'));

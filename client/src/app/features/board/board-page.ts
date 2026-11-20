@@ -1,5 +1,5 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
-import { ChangeDetectionStrategy, Component, Injector, effect, inject, input, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, Injector, effect, inject, input, signal, untracked } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -14,7 +14,9 @@ import { TeamBoardApi } from '../../core/api/team-board-api';
 import { toProblem } from '../../core/errors';
 import { Notifier } from '../../core/notifier';
 import { ConfirmDialog, NameDialog, NameDialogData, NameDialogResult } from '../../shared/dialogs';
+import { ActivityPanel } from './activity-panel';
 import { AddCard } from './add-card';
+import { BoardSync } from './board-sync';
 import { BoardStore, ColumnView } from './board.store';
 import { CardTile } from './card-tile';
 import { MembersDialog } from './members-dialog';
@@ -25,7 +27,7 @@ import { MembersDialog } from './members-dialog';
   imports: [
     CdkDrag, CdkDropList, CdkDropListGroup, RouterLink, RouterOutlet,
     MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, MatMenuModule, MatSelectModule, MatTooltipModule,
-    AddCard, CardTile,
+    ActivityPanel, AddCard, CardTile,
   ],
   templateUrl: './board-page.html',
   styleUrl: './board-page.scss',
@@ -35,6 +37,8 @@ export class BoardPage {
   readonly id = input.required<string>();
 
   readonly store = inject(BoardStore);
+  readonly sync = inject(BoardSync);
+  readonly activityOpen = signal(false);
   private readonly injector = inject(Injector);
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
@@ -46,12 +50,17 @@ export class BoardPage {
     effect(() => {
       const id = Number(this.id());
       untracked(() => {
-        this.store.load(id).catch((e) => {
-          this.notifier.error(toProblem(e).message);
-          void this.router.navigate(['/boards']);
-        });
+        this.store
+          .load(id)
+          .then(() => this.sync.start(id)) // live updates start once there is a board to keep in step
+          .catch((e) => {
+            this.notifier.error(toProblem(e).message);
+            void this.router.navigate(['/boards']);
+          });
       });
     });
+
+    inject(DestroyRef).onDestroy(() => void this.sync.stop());
   }
 
   // ---- drag and drop ----

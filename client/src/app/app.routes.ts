@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, boardGuard, guestGuard } from './core/auth/guards';
+import { BoardSync } from './features/board/board-sync';
 import { BoardStore } from './features/board/board.store';
 
 export const routes: Routes = [
@@ -23,7 +24,7 @@ export const routes: Routes = [
     // The card drawer is a child route, so it opens over the board and shares its store.
     path: 'boards/:id',
     canActivate: [authGuard, boardGuard],
-    providers: [BoardStore],
+    providers: [BoardStore, BoardSync],
     loadComponent: () => import('./features/board/board-page').then((m) => m.BoardPage),
     children: [
       {

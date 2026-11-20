@@ -46,6 +46,19 @@ describe('authInterceptor', () => {
     req.flush([]);
   });
 
+  it('tells the server which tab is calling, on every API request, so live updates can skip the echo', () => {
+    http.get('/api/boards').subscribe();
+    http.post('/api/auth/refresh', {}).subscribe();
+
+    const first = backend.expectOne('/api/boards');
+    const second = backend.expectOne('/api/auth/refresh');
+    const id = first.request.headers.get('X-Client-Id');
+    expect(id).toBeTruthy();
+    expect(second.request.headers.get('X-Client-Id')).toBe(id);
+    first.flush([]);
+    second.flush({});
+  });
+
   it('leaves requests to other addresses alone', () => {
     http.get('/assets/logo.svg').subscribe();
 

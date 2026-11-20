@@ -1,4 +1,4 @@
-import { BoardDetailDto, CardDto, ColumnDto, LabelDto } from '../../api/models';
+import { BoardDetailDto, CardDto, ColumnDto, LabelDto, MemberDto } from '../../api/models';
 
 /** Mirrors the server's GapPositionCalculator, so the optimistic position is the one the server will pick. */
 export const POSITION_STEP = 1024;
@@ -98,6 +98,21 @@ export function withoutLabel(board: BoardDetailDto, labelId: number): BoardDetai
       ...c,
       cards: c.cards.map((card) => (card.labelIds.includes(labelId) ? { ...card, labelIds: card.labelIds.filter((id) => id !== labelId) } : card)),
     })),
+  };
+}
+
+export function withMember(board: BoardDetailDto, member: MemberDto): BoardDetailDto {
+  const exists = board.members.some((m) => m.userId === member.userId);
+  const members = exists ? board.members.map((m) => (m.userId === member.userId ? member : m)) : [...board.members, member];
+  return { ...board, members: members.sort((a, b) => a.username.localeCompare(b.username)) };
+}
+
+/** Removes the member, and unassigns their cards, as the server does. */
+export function withoutMember(board: BoardDetailDto, userId: number): BoardDetailDto {
+  return {
+    ...board,
+    members: board.members.filter((m) => m.userId !== userId),
+    columns: board.columns.map((c) => ({ ...c, cards: c.cards.map((card) => (card.assigneeId === userId ? { ...card, assigneeId: null } : card)) })),
   };
 }
 

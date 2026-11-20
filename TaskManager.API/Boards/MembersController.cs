@@ -29,10 +29,12 @@ public sealed class MembersController(AppDbContext db, IAuthorizationService aut
 
         Db.BoardMembers.Add(new BoardMember { BoardId = boardId, UserId = user.Id, Role = request.Role });
         await Db.SaveChangesAsync(ct);
-        await Events.PublishAsync(new BoardEvent(boardId, UserId, ActivityType.MemberAdded,
-            Payload: new { userId = user.Id, username = user.Username, role = request.Role }), ct);
+        var dto = new MemberDto(user.Id, user.Username, user.Email, request.Role);
+        await PublishAsync(boardId, ActivityType.MemberAdded, LiveMethods.MemberChanged,
+            origin => new MemberChangedMessage(boardId, user.Id, dto, origin), ct,
+            payload: new { userId = user.Id, username = user.Username, role = request.Role });
 
-        return Created($"/api/boards/{boardId}", new MemberDto(user.Id, user.Username, user.Email, request.Role));
+        return Created($"/api/boards/{boardId}", dto);
     }
 
     [HttpPut("boards/{boardId:int}/members/{userId:int}")]
@@ -53,10 +55,12 @@ public sealed class MembersController(AppDbContext db, IAuthorizationService aut
 
         member.Role = request.Role;
         await Db.SaveChangesAsync(ct);
-        await Events.PublishAsync(new BoardEvent(boardId, UserId, ActivityType.MemberRoleChanged,
-            Payload: new { userId, role = request.Role }), ct);
+        var dto = new MemberDto(userId, member.User.Username, member.User.Email, member.Role);
+        await PublishAsync(boardId, ActivityType.MemberRoleChanged, LiveMethods.MemberChanged,
+            origin => new MemberChangedMessage(boardId, userId, dto, origin), ct,
+            payload: new { userId, username = member.User.Username, role = request.Role });
 
-        return Ok(new MemberDto(userId, member.User.Username, member.User.Email, member.Role));
+        return Ok(dto);
     }
 
     /// <summary>The owner removes anyone; any member may remove themselves (leave).</summary>
@@ -66,12 +70,12 @@ public sealed class MembersController(AppDbContext db, IAuthorizationService aut
         var requirement = userId == UserId ? BoardAccess.Viewer : BoardAccess.Owner;
         if (await DenyUnlessAsync(boardId, requirement) is { } denied) return denied;
 
-        var role = await Db.BoardMembers.AsNoTracking()
+        var target = await Db.BoardMembers.AsNoTracking()
             .Where(m => m.BoardId == boardId && m.UserId == userId)
-            .Select(m => (BoardRole?)m.Role)
+            .Select(m => new { m.Role, m.User.Username })
             .SingleOrDefaultAsync(ct);
-        if (role is null) return NotFoundProblem("That user is not a member of this board.");
-        if (role == BoardRole.Owner) return ConflictProblem("The owner cannot be removed from the board.");
+        if (target is null) return NotFoundProblem("That user is not a member of this board.");
+        if (target.Role == BoardRole.Owner) return ConflictProblem("The owner cannot be removed from the board.");
 
         await using var tx = await Db.Database.BeginTransactionAsync(ct);
         await Db.Tasks.Where(t => t.BoardId == boardId && t.AssigneeId == userId)
@@ -79,7 +83,9 @@ public sealed class MembersController(AppDbContext db, IAuthorizationService aut
         await Db.BoardMembers.Where(m => m.BoardId == boardId && m.UserId == userId).ExecuteDeleteAsync(ct);
         await tx.CommitAsync(ct);
 
-        await Events.PublishAsync(new BoardEvent(boardId, UserId, ActivityType.MemberRemoved, Payload: new { userId }), ct);
+        await PublishAsync(boardId, ActivityType.MemberRemoved, LiveMethods.MemberChanged,
+            origin => new MemberChangedMessage(boardId, userId, null, origin), ct,
+            payload: new { userId, username = target.Username });
         return NoContent();
     }
 }

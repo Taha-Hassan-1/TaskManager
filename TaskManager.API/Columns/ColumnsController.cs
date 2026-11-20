@@ -37,10 +37,11 @@ public sealed class ColumnsController(
 
         Db.Columns.Add(column);
         await Db.SaveChangesAsync(ct);
-        await Events.PublishAsync(new BoardEvent(boardId, UserId, ActivityType.ColumnCreated,
-            Payload: new { columnId = column.Id, name = column.Name }), ct);
+        var dto = new ColumnDto(column.Id, column.Name, column.Position, column.WipLimit, []);
+        await PublishAsync(boardId, ActivityType.ColumnCreated, LiveMethods.ColumnChanged,
+            origin => new ColumnChangedMessage(boardId, dto, origin), ct, payload: new { columnId = column.Id, name = column.Name });
 
-        return Created($"/api/boards/{boardId}", new ColumnDto(column.Id, column.Name, column.Position, column.WipLimit, []));
+        return Created($"/api/boards/{boardId}", dto);
     }
 
     [HttpPut("columns/{id:int}")]
@@ -56,10 +57,11 @@ public sealed class ColumnsController(
             && await PlaceAsync(column, request, ct) is { } invalid) return invalid;
 
         await Db.SaveChangesAsync(ct);
-        await Events.PublishAsync(new BoardEvent(column.BoardId, UserId, ActivityType.ColumnUpdated,
-            Payload: new { columnId = column.Id, name = column.Name }), ct);
+        var dto = new ColumnDto(column.Id, column.Name, column.Position, column.WipLimit, []);
+        await PublishAsync(column.BoardId, ActivityType.ColumnUpdated, LiveMethods.ColumnChanged,
+            origin => new ColumnChangedMessage(column.BoardId, dto, origin), ct, payload: new { columnId = column.Id, name = column.Name });
 
-        return Ok(new ColumnDto(column.Id, column.Name, column.Position, column.WipLimit, []));
+        return Ok(dto);
     }
 
     /// <summary>Sets <paramref name="column"/>.Position from the before/after hint; returns a problem when the hint is bad.</summary>

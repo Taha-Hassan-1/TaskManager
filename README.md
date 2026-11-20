@@ -2,7 +2,7 @@
 
 A real-time collaborative kanban app: ASP.NET Core 10 Web API (JWT, SignalR, EF Core / SQL Server) with an Angular front end.
 
-> Work in progress. See the spec and implementation plan for scope and milestones. Status: M4 done (Angular app); next is M5 (real time).
+> Work in progress. See the spec and implementation plan for scope and milestones. Status: M5 done (live updates); next is M6 (harden and ship).
 
 ## Run it
 
@@ -29,6 +29,16 @@ In production the same API settings come from the environment variables `Jwt__Ke
 dotnet test TaskManager.slnx              # API, permissions, migrations (needs SQL Server)
 cd client; npm test -- --no-watch         # Angular unit tests
 ```
+
+## Live updates
+
+Two browsers on the same board stay in step. Every change still goes through REST, where validation and permissions live; after it is committed the API pushes the result to the board's SignalR group (`/hubs/board`).
+
+- A client joins a board with `JoinBoard(id)`; membership is checked again on every join, and a removed member is cut off the group at once.
+- Messages carry ids and the changed fields: `TaskCreated`, `TaskUpdated`, `TaskMoved`, `TaskDeleted`, `ColumnChanged`, `CommentAdded`, `CommentChanged`, `MemberChanged`, `LabelChanged`, `BoardChanged`, `BoardDeleted`, `ActivityAdded`.
+- Each request carries `X-Client-Id` (one per browser tab) and the API echoes it back in the message about that change, so a tab skips the echo of its own change but still sees the same user's other tab.
+- A browser cannot set headers on a WebSocket, so the access token travels as `?access_token=`, accepted for `/hubs` only.
+- After a dropped connection the client rejoins the board and reloads it once, so missed messages cannot leave the screen stale.
 
 ## API contract and the generated client
 

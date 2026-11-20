@@ -205,4 +205,43 @@ describe('BoardStore', () => {
       expect(titlesIn(10)).toEqual([1, 3]);
     });
   });
+
+  describe('changes pushed from other people', () => {
+    it('does not apply a push about a card whose move of mine is still in flight, then re-reads it', async () => {
+      const reply = deferred<{ id: number; columnId: number; position: number; rowVersion: string }>();
+      api['moveCard'].mockReturnValue(reply.promise);
+      api['getCard'].mockResolvedValue({ card: card(1, 30, 1024, { title: 'As the server has it', rowVersion: 'final' }), comments: [] });
+
+      const moving = store.moveCard(1, 20, 0); // I drag card 1 into Doing...
+      store.applyRemoteMove({ taskId: 1, columnId: 30, position: 1024, rowVersion: 'theirs' }); // ...while bob moves it to Done
+
+      expect(titlesIn(20)).toEqual([1, 4]); // my move on screen was not undone by his push
+      expect(titlesIn(30)).toEqual([]);
+
+      reply.resolve({ id: 1, columnId: 20, position: 0, rowVersion: 'mine' });
+      await moving;
+
+      expect(api['getCard']).toHaveBeenCalledWith(1); // once mine settled, the card was read again...
+      expect(titlesIn(30)).toEqual([1]); // ...so the screen shows the real outcome
+      expect(cardIn(1).rowVersion).toBe('final');
+    });
+
+    it('applies a push about a card nobody here is touching straight away', () => {
+      store.applyRemoteMove({ taskId: 2, columnId: 30, position: 1024, rowVersion: 'v2-new' });
+      expect(titlesIn(30)).toEqual([2]);
+      expect(api['getCard']).not.toHaveBeenCalled();
+    });
+
+    it('a push does not disturb the active filters', () => {
+      store.setFilters({ text: 'Card 1' });
+      store.applyRemoteCard(card(9, 10, 5000, { title: 'Unrelated' }));
+      expect(titlesIn(10)).toEqual([1]); // hidden by the filter, but counted
+      expect(store.columns()[0].total).toBe(4);
+    });
+
+    it('counts a deleted comment down but never below zero', () => {
+      store.applyRemoteComment({ taskId: 1, commentId: 5, comment: null }, 'changed');
+      expect(cardIn(1).commentCount).toBe(0);
+    });
+  });
 });

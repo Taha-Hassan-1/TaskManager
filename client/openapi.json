@@ -953,6 +953,7 @@
       "ActivityType": {
         "enum": [
           "BoardCreated",
+          "BoardRenamed",
           "MemberAdded",
           "MemberRemoved",
           "MemberRoleChanged",

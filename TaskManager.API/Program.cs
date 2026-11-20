@@ -1,10 +1,10 @@
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Scalar.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using TaskManager.API.Auth;
 using TaskManager.API.Data;
 using TaskManager.API.Infrastructure;
+using TaskManager.API.Realtime;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,9 +24,9 @@ builder.Services.AddControllers(o =>
         o.Filters.Add(new ProducesAttribute("application/json"));
         o.Filters.Add(new ConsumesAttribute("application/json"));
     })
-    .AddJsonOptions(o => ConfigureJson(o.JsonSerializerOptions));
+    .AddJsonOptions(o => JsonConfig.Apply(o.JsonSerializerOptions));
 // The OpenAPI generator reads these options, not MVC's, so both must agree for the document to match the wire format.
-builder.Services.ConfigureHttpJsonOptions(o => ConfigureJson(o.SerializerOptions));
+builder.Services.ConfigureHttpJsonOptions(o => JsonConfig.Apply(o.SerializerOptions));
 builder.Services.AddOpenApi(o => o.UseJsonOnly());
 
 var app = builder.Build();
@@ -49,14 +49,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 app.MapControllers();
+app.MapHub<BoardHub>("/hubs/board");
 app.Run();
-
-// Enums travel as names ("Owner", "High") and numbers only as numbers, which is what the generated Angular client expects.
-static void ConfigureJson(System.Text.Json.JsonSerializerOptions o)
-{
-    o.Converters.Add(new JsonStringEnumConverter());
-    o.NumberHandling = JsonNumberHandling.Strict;
-}
 
 // Lets the integration tests use WebApplicationFactory<Program>.
 public partial class Program;

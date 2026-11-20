@@ -17,8 +17,19 @@ export class AuthService {
   readonly isSignedIn = computed(() => this.user() !== null);
 
   private refreshing: Promise<boolean> | null = null;
+  private expiresAt = 0;
 
   get accessToken(): string | null {
+    return this.token();
+  }
+
+  /**
+   * A token that is good for at least another half minute, refreshing first if needed. The live connection
+   * asks for one every time it (re)connects, which can be long after the last one expired.
+   * Returns null when there is no session any more.
+   */
+  async freshAccessToken(): Promise<string | null> {
+    if (!this.token() || Date.now() > this.expiresAt - 30_000) await this.refresh();
     return this.token();
   }
 
@@ -72,10 +83,12 @@ export class AuthService {
 
   private apply(response: AuthResponse): void {
     this.token.set(response.accessToken);
+    this.expiresAt = Date.parse(response.expiresAt);
     this.user.set(response.user);
   }
 
   private clear(): void {
+    this.expiresAt = 0;
     this.token.set(null);
     this.user.set(null);
   }

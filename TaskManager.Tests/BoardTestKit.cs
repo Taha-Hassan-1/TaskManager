@@ -79,10 +79,11 @@ public static class BoardTestKit
     }
 
     public static Task<HttpResponseMessage> SendAsync(
-        this HttpClient client, HttpMethod method, string url, string? token = null, object? body = null)
+        this HttpClient client, HttpMethod method, string url, string? token = null, object? body = null, string? clientId = null)
     {
         var request = new HttpRequestMessage(method, url);
         if (token is not null) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        if (clientId is not null) request.Headers.Add("X-Client-Id", clientId);
         if (body is not null) request.Content = JsonContent.Create(body, options: Json.Options);
         return client.SendAsync(request);
     }

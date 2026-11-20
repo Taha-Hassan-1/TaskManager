@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using TaskManager.API.Realtime;
 
 namespace TaskManager.API.Infrastructure;
 
@@ -12,6 +13,12 @@ public static class BoardServiceCollectionExtensions
         // Observer: add a listener (SignalR in M5) with one more line here.
         services.AddScoped<IBoardEvents, BoardEvents>();
         services.AddScoped<IBoardEventHandler, ActivityLogHandler>();
+        services.AddScoped<IBoardEventHandler, SignalRNotifier>();
+
+        // Live updates: the hub only pushes; see Realtime/.
+        services.AddSingleton<BoardConnections>();
+        services.AddSingleton<IBoardBroadcaster, SignalRBoardBroadcaster>();
+        services.AddSignalR().AddJsonProtocol(o => JsonConfig.Apply(o.PayloadSerializerOptions));
         return services;
     }
 }

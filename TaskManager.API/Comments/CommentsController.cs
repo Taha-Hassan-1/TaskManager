@@ -23,10 +23,11 @@ public sealed class CommentsController(
     [HttpPost("tasks/{taskId:int}/comments")]
     public async Task<ActionResult<CommentDto>> Create(int taskId, CommentRequest request, CancellationToken ct)
     {
-        var boardId = await Db.Tasks.AsNoTracking().Where(t => t.Id == taskId)
-            .Select(t => (int?)t.BoardId).SingleOrDefaultAsync(ct);
-        if (boardId is null) return NotFoundProblem();
-        if (await DenyUnlessAsync(boardId.Value, BoardAccess.Editor) is { } denied) return denied;
+        var target = await Db.Tasks.AsNoTracking().Where(t => t.Id == taskId)
+            .Select(t => new { t.BoardId, t.Title }).SingleOrDefaultAsync(ct);
+        if (target is null) return NotFoundProblem();
+        var boardId = target.BoardId;
+        if (await DenyUnlessAsync(boardId, BoardAccess.Editor) is { } denied) return denied;
 
         var comment = new Comment
         {
@@ -37,11 +38,12 @@ public sealed class CommentsController(
         };
         Db.Comments.Add(comment);
         await Db.SaveChangesAsync(ct);
-        await Events.PublishAsync(new BoardEvent(boardId.Value, UserId, ActivityType.CommentAdded, taskId,
-            new { commentId = comment.Id }), ct);
-
         var author = await Db.Users.AsNoTracking().Where(u => u.Id == UserId).Select(u => u.Username).SingleAsync(ct);
-        return Created($"/api/tasks/{taskId}", new CommentDto(comment.Id, taskId, UserId, author, comment.Body, comment.CreatedAt));
+        var dto = new CommentDto(comment.Id, taskId, UserId, author, comment.Body, comment.CreatedAt);
+        await PublishAsync(boardId, ActivityType.CommentAdded, LiveMethods.CommentAdded,
+            origin => new CommentAddedMessage(boardId, taskId, dto, origin), ct,
+            taskId, new { commentId = comment.Id, title = target.Title });
+        return Created($"/api/tasks/{taskId}", dto);
     }
 
     /// <summary>Only the author edits a comment.</summary>
@@ -60,7 +62,10 @@ public sealed class CommentsController(
         await Db.SaveChangesAsync(ct);
 
         var author = await Db.Users.AsNoTracking().Where(u => u.Id == comment.AuthorId).Select(u => u.Username).SingleAsync(ct);
-        return Ok(new CommentDto(comment.Id, comment.TaskItemId, comment.AuthorId, author, comment.Body, comment.CreatedAt));
+        var dto = new CommentDto(comment.Id, comment.TaskItemId, comment.AuthorId, author, comment.Body, comment.CreatedAt);
+        await PublishAsync(boardId, null, LiveMethods.CommentChanged,
+            origin => new CommentChangedMessage(boardId, comment.TaskItemId, comment.Id, dto, origin), ct);
+        return Ok(dto);
     }
 
     /// <summary>The author deletes their own comment; the board owner can delete any.</summary>
@@ -76,6 +81,8 @@ public sealed class CommentsController(
 
         Db.Comments.Remove(comment);
         await Db.SaveChangesAsync(ct);
+        await PublishAsync(boardId, null, LiveMethods.CommentChanged,
+            origin => new CommentChangedMessage(boardId, comment.TaskItemId, comment.Id, null, origin), ct);
         return NoContent();
     }
 

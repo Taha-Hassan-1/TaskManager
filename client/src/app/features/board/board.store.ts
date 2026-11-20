@@ -1,18 +1,26 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { BoardDetailDto, CardDto, ColumnRequest, LabelDto } from '../../api/models';
+import { ActivityDto, BoardDetailDto, CardDto, ColumnDto, ColumnRequest, CommentDto, LabelDto, MemberDto } from '../../api/models';
 import { TeamBoardApi } from '../../core/api/team-board-api';
 import { BoardCache } from '../../core/board-cache';
 import { toProblem } from '../../core/errors';
 import { Notifier } from '../../core/notifier';
 import {
   CardFilters, NO_FILTERS, byPosition, findCard, hasFilters, matchesFilters, placeAmong,
-  withCard, withColumn, withLabel, withoutCard, withoutLabel,
+  withCard, withColumn, withLabel, withMember, withoutCard, withoutLabel, withoutMember,
 } from './board.model';
 
 /** Where a dropped card goes, relative to a neighbour. Neither field: the end of the column. */
 interface DropHint {
   beforeCardId?: number;
   afterCardId?: number;
+}
+
+/** A comment added, edited or deleted by someone else; the open card drawer listens for it. */
+export interface CommentChange {
+  taskId: number;
+  commentId: number;
+  /** Null when the comment was deleted. */
+  comment: CommentDto | null;
 }
 
 export interface ColumnView {
@@ -39,6 +47,16 @@ export class BoardStore {
 
   readonly board = signal<BoardDetailDto | null>(null);
   readonly filters = signal<CardFilters>(NO_FILTERS);
+
+  /** The newest activity entry pushed live; the activity panel adds it to its list. */
+  readonly latestActivity = signal<ActivityDto | null>(null);
+  /** The newest comment change made by someone else; the open card drawer applies it. */
+  readonly commentChange = signal<CommentChange | null>(null);
+
+  // Cards with a move of mine still in flight. A live message about such a card is not applied (it could
+  // undo the move on screen); it is remembered, and the card is re-read once my move has settled.
+  private readonly busyCards = new Set<number>();
+  private readonly staleCards = new Set<number>();
 
   readonly boardId = computed(() => this.board()?.id ?? 0);
   readonly role = computed(() => this.board()?.myRole ?? 'Viewer');
@@ -142,6 +160,7 @@ export class BoardStore {
     const optimisticPosition = placement.position ?? this.approximatePosition(everyone, hint);
     const previous = card;
     this.upsertCard({ ...card, columnId: toColumnId, position: optimisticPosition });
+    this.busyCards.add(cardId);
 
     try {
       const result = await this.api.moveCard(cardId, { columnId: toColumnId, rowVersion: card.rowVersion, ...hint });
@@ -157,6 +176,9 @@ export class BoardStore {
       } else {
         this.notifier.error(problem.message);
       }
+    } finally {
+      this.busyCards.delete(cardId);
+      if (this.staleCards.delete(cardId)) await this.refreshCard(cardId); // something happened to it while I was moving it
     }
   }
 
@@ -213,6 +235,67 @@ export class BoardStore {
     } catch (error) {
       this.notifier.error(toProblem(error).message);
     }
+  }
+
+  // ---- changes made by other people, pushed live (see BoardSync) ----
+
+  applyRemoteCard(card: CardDto): void {
+    if (this.holdBack(card.id)) return;
+    this.upsertCard(card);
+  }
+
+  applyRemoteMove(move: { taskId: number; columnId: number; position: number; rowVersion: string }): void {
+    if (this.holdBack(move.taskId)) return;
+    const board = this.board();
+    const card = board && findCard(board, move.taskId);
+    if (!card) {
+      void this.refreshCard(move.taskId); // a card this screen never heard of: ask for it
+      return;
+    }
+    this.upsertCard({ ...card, columnId: move.columnId, position: move.position, rowVersion: move.rowVersion });
+  }
+
+  applyRemoteDelete(cardId: number): void {
+    this.staleCards.delete(cardId);
+    this.board.update((b) => (b ? withoutCard(b, cardId) : b));
+  }
+
+  applyRemoteColumn(column: ColumnDto): void {
+    this.board.update((b) => (b ? withColumn(b, column) : b));
+  }
+
+  applyRemoteLabel(labelId: number, label: LabelDto | null): void {
+    this.board.update((b) => (b ? (label ? withLabel(b, label) : withoutLabel(b, labelId)) : b));
+  }
+
+  applyRemoteMember(userId: number, member: MemberDto | null): void {
+    this.board.update((b) => (b ? (member ? withMember(b, member) : withoutMember(b, userId)) : b));
+  }
+
+  applyRemoteBoardName(name: string): void {
+    this.board.update((b) => (b ? { ...b, name } : b));
+  }
+
+  /** Someone added, edited or deleted a comment: keep the count on the card right and tell the open drawer. */
+  applyRemoteComment(change: CommentChange, kind: 'added' | 'changed'): void {
+    const board = this.board();
+    const card = board && findCard(board, change.taskId);
+    if (card && !this.busyCards.has(card.id)) {
+      const delta = kind === 'added' ? 1 : change.comment === null ? -1 : 0;
+      if (delta !== 0) this.upsertCard({ ...card, commentCount: Math.max(0, card.commentCount + delta) });
+    }
+    this.commentChange.set(change);
+  }
+
+  applyRemoteActivity(entry: ActivityDto): void {
+    this.latestActivity.set(entry);
+  }
+
+  /** True when a live message about this card should wait because I am in the middle of moving it. */
+  private holdBack(cardId: number): boolean {
+    if (!this.busyCards.has(cardId)) return false;
+    this.staleCards.add(cardId);
+    return true;
   }
 
   // ---- helpers ----

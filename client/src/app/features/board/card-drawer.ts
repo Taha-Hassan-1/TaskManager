@@ -16,7 +16,8 @@ import { Notifier } from '../../core/notifier';
 import { Avatar } from '../../shared/avatar';
 import { ConfirmDialog } from '../../shared/dialogs';
 import { LabelChip } from '../../shared/label-chip';
-import { BoardStore } from './board.store';
+import { findCard } from './board.model';
+import { BoardStore, CommentChange } from './board.store';
 
 const PRIORITIES: TaskPriority[] = ['Low', 'Normal', 'High', 'Urgent'];
 const LABEL_COLORS = ['#e53935', '#fb8c00', '#fdd835', '#43a047', '#1e88e5', '#8e24aa', '#6d4c41', '#546e7a'];
@@ -72,10 +73,73 @@ export class CardDrawer {
 
   readonly comments = computed(() => this.detail()?.comments ?? []);
 
+  /** This card as the board screen currently holds it: it changes when someone else changes the card. */
+  private readonly liveCard = computed(() => {
+    const board = this.store.board();
+    return board ? findCard(board, Number(this.cardId())) : undefined;
+  });
+  private deletedByMe = false;
+
   constructor() {
     effect(() => {
       const id = Number(this.cardId());
       untracked(() => void this.load(id));
+    });
+
+    // Someone else changed, moved or deleted this card while it is open.
+    effect(() => {
+      const live = this.liveCard();
+      const detail = untracked(this.detail);
+      if (detail) untracked(() => this.cardChangedUnderneath(live, detail));
+    });
+
+    // Someone else commented on it.
+    effect(() => {
+      const change = this.store.commentChange();
+      if (change) untracked(() => this.applyCommentChange(change));
+    });
+
+    // My role changed (say, from Editor to Viewer) while the card is open.
+    effect(() => {
+      const canEdit = this.store.canEdit();
+      untracked(() => (canEdit ? this.form.enable({ emitEvent: false }) : this.form.disable({ emitEvent: false })));
+    });
+  }
+
+  private cardChangedUnderneath(live: CardDetailDto['card'] | undefined, detail: CardDetailDto): void {
+    if (!live) {
+      if (!this.deletedByMe) {
+        this.notifier.info('This card was deleted by someone else.');
+        this.close();
+      }
+      return;
+    }
+    if (live.rowVersion === detail.card.rowVersion) return; // nothing new (my own save lands here)
+
+    // Not typing anything: just show the new version. Typing something: let the user choose (the existing banner).
+    if (this.form.pristine) void this.refreshFromServer();
+    else this.conflict.set(true);
+  }
+
+  private async refreshFromServer(): Promise<void> {
+    try {
+      const latest = await this.api.getCard(Number(this.cardId()));
+      this.detail.set(latest);
+      this.resetForm(latest);
+    } catch {
+      // Gone, or no access any more: the board screen deals with that.
+    }
+  }
+
+  private applyCommentChange(change: CommentChange): void {
+    const detail = this.detail();
+    if (!detail || change.taskId !== detail.card.id) return;
+    this.detail.update((d) => {
+      if (!d) return d;
+      if (change.comment === null) return { ...d, comments: d.comments.filter((c) => c.id !== change.commentId) };
+      const known = d.comments.some((c) => c.id === change.commentId);
+      const comment = change.comment;
+      return { ...d, comments: known ? d.comments.map((c) => (c.id === change.commentId ? comment : c)) : [...d.comments, comment] };
     });
   }
 
@@ -168,7 +232,10 @@ export class CardDrawer {
       .open(ConfirmDialog, { data: { title: 'Delete this card?', message: 'The card and its comments are deleted for everyone.', confirmText: 'Delete card' } })
       .afterClosed()
       .subscribe(async (confirmed) => {
-        if (confirmed && (await this.store.deleteCard(Number(this.cardId())))) this.close();
+        if (!confirmed) return;
+        this.deletedByMe = true; // so the "deleted by someone else" notice does not fire for my own delete
+        if (await this.store.deleteCard(Number(this.cardId()))) this.close();
+        else this.deletedByMe = false;
       });
   }
 

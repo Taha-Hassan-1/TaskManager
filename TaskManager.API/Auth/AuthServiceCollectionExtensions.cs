@@ -29,6 +29,17 @@ public static class AuthServiceCollectionExtensions
                 var o = jwt.Value;
                 // Keep claim names as issued ("sub", "name") instead of mapping them to long WS-* URIs.
                 bearer.MapInboundClaims = false;
+                // Browsers cannot set headers on a WebSocket, so SignalR sends the token as ?access_token=. Accepted for /hubs only.
+                bearer.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var token = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(token) && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                            context.Token = token;
+                        return Task.CompletedTask;
+                    }
+                };
                 bearer.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,

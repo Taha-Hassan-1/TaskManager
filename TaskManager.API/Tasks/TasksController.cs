@@ -47,10 +47,12 @@ public sealed class TasksController(
 
         Db.Tasks.Add(task);
         await Db.SaveChangesAsync(ct);
-        await Events.PublishAsync(new BoardEvent(boardId, UserId, ActivityType.TaskCreated, task.Id,
-            new { title = task.Title, columnId = task.ColumnId }), ct);
+        var card = await ToCardAsync(task, ct);
+        await PublishAsync(boardId, ActivityType.TaskCreated, LiveMethods.TaskCreated,
+            origin => new TaskCreatedMessage(boardId, card, origin), ct,
+            task.Id, new { title = task.Title, columnId = task.ColumnId });
 
-        return Created($"/api/tasks/{task.Id}", await ToCardAsync(task, ct));
+        return Created($"/api/tasks/{task.Id}", card);
     }
 
     [HttpGet("tasks/{id:int}")]
@@ -106,9 +108,11 @@ public sealed class TasksController(
             return StaleCard(task, request.RowVersion);
         }
 
-        await Events.PublishAsync(new BoardEvent(task.BoardId, UserId, ActivityType.TaskUpdated, task.Id,
-            new { title = task.Title }), ct);
-        return Ok(await ToCardAsync(task, ct));
+        var card = await ToCardAsync(task, ct);
+        await PublishAsync(task.BoardId, ActivityType.TaskUpdated, LiveMethods.TaskUpdated,
+            origin => new TaskUpdatedMessage(task.BoardId, card, origin), ct,
+            task.Id, new { title = task.Title });
+        return Ok(card);
     }
 
     /// <summary>Move to a column and a place in it. Updates one row; the column is renumbered only when its gaps run out.</summary>
@@ -164,8 +168,9 @@ public sealed class TasksController(
             return StaleCard(task, request.RowVersion);
         }
 
-        await Events.PublishAsync(new BoardEvent(task.BoardId, UserId, ActivityType.TaskMoved, task.Id,
-            new { fromColumnId, toColumnId = task.ColumnId }), ct);
+        await PublishAsync(task.BoardId, ActivityType.TaskMoved, LiveMethods.TaskMoved,
+            origin => new TaskMovedMessage(task.BoardId, task.Id, fromColumnId, task.ColumnId, task.Position, task.RowVersion, origin), ct,
+            task.Id, new { title = task.Title, fromColumnId, toColumnId = task.ColumnId });
         return Ok(new MoveResultDto(task.Id, task.ColumnId, task.Position, task.RowVersion));
     }
 
@@ -178,8 +183,9 @@ public sealed class TasksController(
 
         Db.Tasks.Remove(task);
         await Db.SaveChangesAsync(ct);
-        await Events.PublishAsync(new BoardEvent(task.BoardId, UserId, ActivityType.TaskDeleted, task.Id,
-            new { title = task.Title }), ct);
+        await PublishAsync(task.BoardId, ActivityType.TaskDeleted, LiveMethods.TaskDeleted,
+            origin => new TaskDeletedMessage(task.BoardId, task.Id, origin), ct,
+            task.Id, new { title = task.Title });
         return NoContent();
     }
 
@@ -193,7 +199,9 @@ public sealed class TasksController(
         var label = new Label { BoardId = boardId, Name = request.Name.Trim(), Color = request.Color };
         Db.Labels.Add(label);
         await Db.SaveChangesAsync(ct);
-        return Created($"/api/boards/{boardId}", new LabelDto(label.Id, label.Name, label.Color));
+        var dto = new LabelDto(label.Id, label.Name, label.Color);
+        await PublishAsync(boardId, null, LiveMethods.LabelChanged, origin => new LabelChangedMessage(boardId, label.Id, dto, origin), ct);
+        return Created($"/api/boards/{boardId}", dto);
     }
 
     [HttpDelete("labels/{id:int}")]
@@ -207,6 +215,7 @@ public sealed class TasksController(
         await Db.TaskLabels.Where(tl => tl.LabelId == id).ExecuteDeleteAsync(ct);
         await Db.Labels.Where(l => l.Id == id).ExecuteDeleteAsync(ct);
         await tx.CommitAsync(ct);
+        await PublishAsync(label.BoardId, null, LiveMethods.LabelChanged, origin => new LabelChangedMessage(label.BoardId, id, null, origin), ct);
         return NoContent();
     }
 

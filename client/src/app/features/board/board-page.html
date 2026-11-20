@@ -14,6 +14,12 @@
 
       <span class="spacer"></span>
 
+      <span [class]="'sync-chip ' + sync.status()" role="status"
+        [matTooltip]="sync.status() === 'live' ? 'Changes by other people appear here as they happen.' : sync.status() === 'offline' ? 'Not connected. Changes by other people will not appear until you are back online.' : ''">
+        <span class="dot" aria-hidden="true"></span>
+        {{ sync.status() === 'live' ? 'Live' : sync.status() === 'connecting' ? 'Connecting…' : sync.status() === 'reconnecting' ? 'Reconnecting…' : 'Offline' }}
+      </span>
+
       <mat-form-field class="filter search" appearance="outline" subscriptSizing="dynamic">
         <mat-label>Search cards</mat-label>
         <input matInput type="search" [value]="store.filters().text" (input)="store.setFilters({ text: $any($event.target).value })" />
@@ -45,11 +51,20 @@
         <button mat-button (click)="store.clearFilters()">Clear filters</button>
       }
       <button mat-stroked-button (click)="openMembers()"><mat-icon>group</mat-icon> Members ({{ board.members.length }})</button>
+      <button mat-stroked-button (click)="activityOpen.set(!activityOpen())" [attr.aria-pressed]="activityOpen()"><mat-icon>history</mat-icon> Activity</button>
       @if (store.canEdit()) {
         <button mat-stroked-button (click)="addColumn()"><mat-icon>add</mat-icon> Column</button>
       }
     </header>
 
+    @if (sync.status() === 'offline' || sync.status() === 'reconnecting') {
+      <p class="offline-banner" role="alert">
+        {{ sync.status() === 'reconnecting' ? 'Connection lost. Reconnecting…' : 'You are offline.' }}
+        Changes made by other people will not show up until the connection is back; the board is reloaded then.
+      </p>
+    }
+
+    <div class="workspace">
     <div class="columns" cdkDropListGroup>
       @for (column of store.columns(); track column.id) {
         <section class="column" [class.over-limit]="column.overLimit" [attr.aria-label]="column.name">
@@ -102,6 +117,13 @@
           }
         </section>
       }
+    </div>
+
+    @if (activityOpen()) {
+      <app-activity-panel>
+        <button mat-icon-button (click)="activityOpen.set(false)" aria-label="Close activity"><mat-icon>close</mat-icon></button>
+      </app-activity-panel>
+    }
     </div>
 
     <!-- One menu for every card; each tile's button passes its own card in. -->

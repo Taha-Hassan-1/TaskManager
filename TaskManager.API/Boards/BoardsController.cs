@@ -41,7 +41,8 @@ public sealed class BoardsController(
 
         Db.Boards.Add(board);
         await Db.SaveChangesAsync(ct);
-        await Events.PublishAsync(new BoardEvent(board.Id, UserId, ActivityType.BoardCreated, Payload: new { name = board.Name }), ct);
+        await PublishAsync(board.Id, ActivityType.BoardCreated, LiveMethods.BoardChanged,
+            origin => new BoardChangedMessage(board.Id, board.Name, origin), ct, payload: new { name = board.Name });
 
         var dto = new BoardSummaryDto(board.Id, board.Name, BoardRole.Owner, board.OwnerId, board.CreatedAt, 0);
         return Created($"/api/boards/{board.Id}", dto);
@@ -121,6 +122,8 @@ public sealed class BoardsController(
         var board = await Db.Boards.SingleAsync(b => b.Id == id, ct);
         board.Name = request.Name.Trim();
         await Db.SaveChangesAsync(ct);
+        await PublishAsync(id, ActivityType.BoardRenamed, LiveMethods.BoardChanged,
+            origin => new BoardChangedMessage(id, board.Name, origin), ct, payload: new { name = board.Name });
 
         var cardCount = await Db.Tasks.CountAsync(t => t.BoardId == id, ct);
         return Ok(new BoardSummaryDto(board.Id, board.Name, BoardRole.Owner, board.OwnerId, board.CreatedAt, cardCount));
@@ -133,6 +136,8 @@ public sealed class BoardsController(
 
         // The database cascades down the tree: members, columns, cards, comments, labels, activity.
         await Db.Boards.Where(b => b.Id == id).ExecuteDeleteAsync(ct);
+        // No activity entry: the feed went with the board. Everyone still looking at it is told to leave.
+        await PublishAsync(id, null, LiveMethods.BoardDeleted, origin => new BoardDeletedMessage(id, origin), ct);
         return NoContent();
     }
 }

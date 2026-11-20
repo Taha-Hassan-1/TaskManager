@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TaskManager.API.Models;
 
 namespace TaskManager.API.Data;
@@ -17,6 +18,22 @@ public class AppDbContext : DbContext
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<ActivityEntry> Activity => Set<ActivityEntry>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    // SQL Server's datetime2 has no time zone, so values read back are "unspecified" and would be sent to clients
+    // without a Z, to be read as local time. Everything in this database is UTC; say so when it is read.
+    protected override void ConfigureConventions(ModelConfigurationBuilder builder)
+    {
+        builder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+        builder.Properties<DateTime?>().HaveConversion<NullableUtcDateTimeConverter>();
+    }
+
+    private sealed class UtcDateTimeConverter() : ValueConverter<DateTime, DateTime>(
+        v => v.Kind == DateTimeKind.Local ? v.ToUniversalTime() : v,
+        v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+    private sealed class NullableUtcDateTimeConverter() : ValueConverter<DateTime?, DateTime?>(
+        v => v.HasValue && v.Value.Kind == DateTimeKind.Local ? v.Value.ToUniversalTime() : v,
+        v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
 
     // SQL Server rejects schemas with several cascade paths to one table. The rule used here:
     // deleting a Board cascades down the tree (members, columns, cards, labels, activity); every

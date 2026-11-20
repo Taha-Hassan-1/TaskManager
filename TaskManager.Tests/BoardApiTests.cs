@@ -525,4 +525,34 @@ public class BoardApiTests : IClassFixture<ApiFactory>
 
         Assert.Equal([ActivityType.MemberAdded, ActivityType.BoardCreated], page.Items.Select(a => a.Type));
     }
+
+    [Fact]
+    public async Task EveryTimestamp_IsSentAsUtc_SoBrowsersDoNotReadItAsLocalTime()
+    {
+        // SQL Server hands back datetimes with no zone; without the UTC conversion they lose their "Z" after a round trip.
+        var s = await BoardTestKit.SeedBoardAsync(_factory);
+        await SendAsync(HttpMethod.Post, $"/api/boards/{s.BoardId}/tasks", s.Editor, new { title = "Dated", columnId = s.TodoId, dueDate = "2027-01-31T00:00:00Z" });
+
+        var board = await (await SendAsync(HttpMethod.Get, $"/api/boards/{s.BoardId}", s.Viewer)).Content.ReadAsStringAsync();
+        var activity = await (await SendAsync(HttpMethod.Get, $"/api/boards/{s.BoardId}/activity", s.Viewer)).Content.ReadAsStringAsync();
+        var card = await (await SendAsync(HttpMethod.Get, $"/api/tasks/{s.CardId}", s.Viewer)).Content.ReadAsStringAsync();
+
+        foreach (var json in new[] { board, activity, card })
+        {
+            var stamps = System.Text.RegularExpressions.Regex.Matches(json, "\"(?:createdAt|dueDate)\":\"([^\"]+)\"").Select(m => m.Groups[1].Value).ToList();
+            Assert.NotEmpty(stamps);
+            Assert.All(stamps, t => Assert.EndsWith("Z", t));
+        }
+    }
+
+    [Fact]
+    public async Task ActivityPayloads_NameTheirEnums()
+    {
+        var s = await BoardTestKit.SeedBoardAsync(_factory);
+        await SendAsync(HttpMethod.Post, $"/api/boards/{s.BoardId}/members", s.Owner, new { email = s.Candidate.Email, role = "Viewer" });
+
+        var page = await (await SendAsync(HttpMethod.Get, $"/api/boards/{s.BoardId}/activity", s.Owner)).ReadAsync<ActivityPageDto>();
+
+        Assert.Equal("Viewer", page.Items.Single(a => a.Type == ActivityType.MemberAdded).Payload.GetProperty("role").GetString());
+    }
 }
