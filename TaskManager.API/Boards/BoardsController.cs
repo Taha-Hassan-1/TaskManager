@@ -76,13 +76,13 @@ public sealed class BoardsController(
             .ToListAsync(ct);
 
         var columns = await Db.Columns.AsNoTracking()
-            .Where(c => c.BoardId == id).OrderBy(c => c.Position)
+            .Where(c => c.BoardId == id).OrderBy(c => c.Position).ThenBy(c => c.Id)
             .Select(c => new { c.Id, c.Name, c.Position, c.WipLimit })
             .ToListAsync(ct);
 
         var cards = await Db.Tasks.AsNoTracking()
             .Where(t => t.BoardId == id)
-            .OrderBy(t => t.Position)
+            .OrderBy(t => t.Position).ThenBy(t => t.Id) // equal positions (simultaneous adds) stay in a stable order
             .Select(t => new
             {
                 t.Id, t.ColumnId, t.Title, t.Description, t.Position, t.Priority, t.DueDate,

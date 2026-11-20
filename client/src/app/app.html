@@ -1,0 +1,9 @@
+@if (auth.isSignedIn()) {
+  <mat-toolbar class="shell">
+    <a routerLink="/boards" class="brand"><mat-icon>view_kanban</mat-icon> TeamBoard</a>
+    <span class="spacer"></span>
+    <span class="user">{{ auth.user()?.username }}</span>
+    <button mat-icon-button (click)="auth.logout()" aria-label="Sign out"><mat-icon>logout</mat-icon></button>
+  </mat-toolbar>
+}
+<router-outlet />

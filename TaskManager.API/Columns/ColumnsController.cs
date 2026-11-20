@@ -73,7 +73,7 @@ public sealed class ColumnsController(
 
         var siblings = await Db.Columns.AsNoTracking()
             .Where(c => c.BoardId == column.BoardId && c.Id != column.Id)
-            .OrderBy(c => c.Position)
+            .OrderBy(c => c.Position).ThenBy(c => c.Id)
             .Select(c => new Sibling(c.Id, c.Position))
             .ToListAsync(ct);
 
@@ -88,7 +88,7 @@ public sealed class ColumnsController(
         {
             // Gap exhausted: renumber this board's columns, then place again.
             var others = await Db.Columns.Where(c => c.BoardId == column.BoardId && c.Id != column.Id)
-                .OrderBy(c => c.Position).ToListAsync(ct);
+                .OrderBy(c => c.Position).ThenBy(c => c.Id).ToListAsync(ct);
             for (var i = 0; i < others.Count; i++) others[i].Position = (i + 1) * positions.Step;
             siblings = others.Select(c => new Sibling(c.Id, c.Position)).ToList();
             placement = positions.Place(siblings, request.BeforeColumnId, request.AfterColumnId);

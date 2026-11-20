@@ -129,7 +129,7 @@ public sealed class TasksController(
 
         var siblings = await Db.Tasks.AsNoTracking()
             .Where(t => t.ColumnId == request.ColumnId && t.Id != id)
-            .OrderBy(t => t.Position)
+            .OrderBy(t => t.Position).ThenBy(t => t.Id)
             .Select(t => new Sibling(t.Id, t.Position))
             .ToListAsync(ct);
 
@@ -144,7 +144,7 @@ public sealed class TasksController(
         {
             // Rare: the gap between neighbours is used up. Renumber the target column once, then place again.
             var column = await Db.Tasks.Where(t => t.ColumnId == request.ColumnId && t.Id != id)
-                .OrderBy(t => t.Position).ToListAsync(ct);
+                .OrderBy(t => t.Position).ThenBy(t => t.Id).ToListAsync(ct);
             for (var i = 0; i < column.Count; i++) column[i].Position = (i + 1) * positions.Step;
             siblings = column.Select(t => new Sibling(t.Id, t.Position)).ToList();
             placement = positions.Place(siblings, request.BeforeCardId, request.AfterCardId);

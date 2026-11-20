@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Mvc;
 using Scalar.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using TaskManager.API.Auth;
@@ -17,12 +18,25 @@ builder.Services.AddTeamBoardAuth(builder.Configuration);
 builder.Services.AddTeamBoardBoards();
 
 builder.Services.AddProblemDetails();
-// Enums travel as names ("Owner", "High"), which is what the generated Angular client expects.
-builder.Services.AddControllers()
-    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-builder.Services.AddOpenApi();
+// One media type in and out keeps the OpenAPI document, and so the generated client, small and unambiguous.
+builder.Services.AddControllers(o =>
+    {
+        o.Filters.Add(new ProducesAttribute("application/json"));
+        o.Filters.Add(new ConsumesAttribute("application/json"));
+    })
+    .AddJsonOptions(o => ConfigureJson(o.JsonSerializerOptions));
+// The OpenAPI generator reads these options, not MVC's, so both must agree for the document to match the wire format.
+builder.Services.ConfigureHttpJsonOptions(o => ConfigureJson(o.SerializerOptions));
+builder.Services.AddOpenApi(o => o.UseJsonOnly());
 
 var app = builder.Build();
+
+// Development convenience, switched on by the launch profiles only. Production applies migrations as an explicit step.
+if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
+{
+    using var scope = app.Services.CreateScope();
+    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -36,6 +50,13 @@ app.UseAuthorization();
 app.UseRateLimiter();
 app.MapControllers();
 app.Run();
+
+// Enums travel as names ("Owner", "High") and numbers only as numbers, which is what the generated Angular client expects.
+static void ConfigureJson(System.Text.Json.JsonSerializerOptions o)
+{
+    o.Converters.Add(new JsonStringEnumConverter());
+    o.NumberHandling = JsonNumberHandling.Strict;
+}
 
 // Lets the integration tests use WebApplicationFactory<Program>.
 public partial class Program;

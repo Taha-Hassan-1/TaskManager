@@ -1,0 +1,147 @@
+<div class="backdrop" (click)="close()" aria-hidden="true"></div>
+
+<aside class="drawer" role="dialog" aria-modal="true" aria-label="Card details">
+  <header class="drawer-header">
+    <h2>Card</h2>
+    <button mat-icon-button (click)="close()" aria-label="Close card"><mat-icon>close</mat-icon></button>
+  </header>
+
+  @if (detail(); as d) {
+    <div class="drawer-body">
+      @if (conflict()) {
+        <div class="conflict" role="alert">
+          <p><strong>Someone else changed this card</strong> while you were editing it.</p>
+          <div class="conflict-actions">
+            <button mat-stroked-button (click)="reloadAfterConflict()">Discard mine, show theirs</button>
+            <button mat-stroked-button (click)="keepMyEdits()">Keep mine, then save</button>
+          </div>
+        </div>
+      }
+      @if (saveError(); as message) {
+        <p class="form-error" role="alert">{{ message }}</p>
+      }
+
+      @if (!store.canEdit()) {
+        <p class="read-only">You are a Viewer on this board, so the card is read-only.</p>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+        <mat-form-field appearance="outline">
+          <mat-label>Title</mat-label>
+          <input matInput formControlName="title" maxlength="200" />
+          @if (form.controls.title.hasError('required')) { <mat-error>A card needs a title.</mat-error> }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Description</mat-label>
+          <textarea matInput formControlName="description" rows="4" maxlength="4000"></textarea>
+        </mat-form-field>
+
+        <div class="row">
+          <mat-form-field appearance="outline">
+            <mat-label>Priority</mat-label>
+            <mat-select formControlName="priority">
+              @for (p of priorities; track p) { <mat-option [value]="p">{{ p }}</mat-option> }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Due date</mat-label>
+            <input matInput type="date" formControlName="dueDate" />
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Assignee</mat-label>
+          <mat-select formControlName="assigneeId">
+            <mat-option [value]="null">Unassigned</mat-option>
+            @for (member of store.members(); track member.userId) {
+              <mat-option [value]="member.userId">{{ member.username }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Labels</mat-label>
+          <mat-select formControlName="labelIds" multiple>
+            @for (label of store.labels(); track label.id) {
+              <mat-option [value]="label.id"><app-label-chip [label]="label" /></mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        @if (store.canEdit()) {
+          <div class="new-label">
+            <button mat-button type="button" (click)="toggleAddLabel()"><mat-icon>label</mat-icon> New label</button>
+            @if (addingLabel()) {
+              <div class="new-label-form">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Label name</mat-label>
+                  <input matInput [value]="newLabelName" (input)="newLabelName = $any($event.target).value" maxlength="50" (keydown.enter)="$event.preventDefault(); createLabel()" />
+                </mat-form-field>
+                <div class="swatches" role="radiogroup" aria-label="Label colour">
+                  @for (color of labelColors; track color) {
+                    <button type="button" class="swatch" role="radio" [attr.aria-checked]="newLabelColor === color" [style.background]="color" [class.selected]="newLabelColor === color" (click)="newLabelColor = color" [attr.aria-label]="color"></button>
+                  }
+                </div>
+                <button mat-flat-button type="button" (click)="createLabel()">Add label</button>
+              </div>
+            }
+          </div>
+
+          <div class="actions">
+            <button mat-flat-button type="submit" [disabled]="saving() || form.pristine">Save changes</button>
+            <button mat-button type="button" class="danger" (click)="deleteCard()"><mat-icon>delete</mat-icon> Delete</button>
+          </div>
+        }
+      </form>
+
+      <section class="comments" aria-label="Comments">
+        <h3>Comments ({{ comments().length }})</h3>
+        <ul>
+          @for (comment of comments(); track comment.id) {
+            <li>
+              <app-avatar [name]="comment.authorName" [size]="28" />
+              <div class="comment-body">
+                <div class="comment-head">
+                  <strong>{{ comment.authorName }}</strong>
+                  <time [attr.datetime]="comment.createdAt">{{ comment.createdAt | date: 'MMM d, HH:mm' }}</time>
+                </div>
+                @if (editingCommentId() === comment.id) {
+                  <textarea [value]="editText" (input)="editText = $any($event.target).value" rows="3" aria-label="Edit comment"></textarea>
+                  <div class="comment-actions">
+                    <button mat-flat-button type="button" (click)="saveEdit(comment)">Save</button>
+                    <button mat-button type="button" (click)="editingCommentId.set(null)">Cancel</button>
+                  </div>
+                } @else {
+                  <p class="text">{{ comment.body }}</p>
+                  <div class="comment-actions">
+                    @if (canEditComment(comment)) { <button mat-button type="button" (click)="startEdit(comment)">Edit</button> }
+                    @if (canDeleteComment(comment)) { <button mat-button type="button" (click)="deleteComment(comment)">Delete</button> }
+                  </div>
+                }
+              </div>
+            </li>
+          } @empty {
+            <li class="no-comments">No comments yet.</li>
+          }
+        </ul>
+
+        @if (store.canEdit()) {
+          <div class="new-comment">
+            <textarea
+              rows="2"
+              maxlength="2000"
+              placeholder="Write a comment…"
+              aria-label="New comment"
+              [value]="newComment()"
+              (input)="newComment.set($any($event.target).value)"
+            ></textarea>
+            <button mat-flat-button type="button" (click)="addComment()" [disabled]="!newComment().trim()">Comment</button>
+          </div>
+        }
+      </section>
+    </div>
+  } @else if (!loadFailed()) {
+    <p class="loading" role="status">Loading card…</p>
+  }
+</aside>

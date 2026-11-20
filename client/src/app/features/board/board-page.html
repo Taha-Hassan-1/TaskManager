@@ -1,0 +1,125 @@
+@if (store.board(); as board) {
+  <div class="board-page">
+    <header class="board-header">
+      <a mat-icon-button routerLink="/boards" aria-label="Back to all boards"><mat-icon>arrow_back</mat-icon></a>
+      <h1>{{ board.name }}</h1>
+      <span class="role" [matTooltip]="'You are ' + (board.myRole === 'Viewer' ? 'a Viewer: you can look but not change anything' : 'an ' + board.myRole)">{{ board.myRole }}</span>
+      @if (store.isOwner()) {
+        <button mat-icon-button [matMenuTriggerFor]="boardMenu" aria-label="Board options"><mat-icon>more_vert</mat-icon></button>
+        <mat-menu #boardMenu="matMenu">
+          <button mat-menu-item (click)="renameBoard()"><mat-icon>edit</mat-icon> Rename board</button>
+          <button mat-menu-item (click)="deleteBoard()"><mat-icon>delete</mat-icon> Delete board</button>
+        </mat-menu>
+      }
+
+      <span class="spacer"></span>
+
+      <mat-form-field class="filter search" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Search cards</mat-label>
+        <input matInput type="search" [value]="store.filters().text" (input)="store.setFilters({ text: $any($event.target).value })" />
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field class="filter" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Assignee</mat-label>
+        <mat-select [value]="store.filters().assigneeId" (selectionChange)="store.setFilters({ assigneeId: $event.value })">
+          <mat-option [value]="null">Anyone</mat-option>
+          <mat-option value="none">Unassigned</mat-option>
+          @for (member of store.members(); track member.userId) {
+            <mat-option [value]="member.userId">{{ member.username }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field class="filter" appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Label</mat-label>
+        <mat-select [value]="store.filters().labelId" (selectionChange)="store.setFilters({ labelId: $event.value })">
+          <mat-option [value]="null">Any label</mat-option>
+          @for (label of store.labels(); track label.id) {
+            <mat-option [value]="label.id">{{ label.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      @if (store.hasActiveFilters()) {
+        <button mat-button (click)="store.clearFilters()">Clear filters</button>
+      }
+      <button mat-stroked-button (click)="openMembers()"><mat-icon>group</mat-icon> Members ({{ board.members.length }})</button>
+      @if (store.canEdit()) {
+        <button mat-stroked-button (click)="addColumn()"><mat-icon>add</mat-icon> Column</button>
+      }
+    </header>
+
+    <div class="columns" cdkDropListGroup>
+      @for (column of store.columns(); track column.id) {
+        <section class="column" [class.over-limit]="column.overLimit" [attr.aria-label]="column.name">
+          <header class="column-header">
+            <h2>{{ column.name }}</h2>
+            <span
+              class="count"
+              [class.warn]="column.overLimit"
+              [matTooltip]="column.overLimit ? 'Over the WIP limit of ' + column.wipLimit + ' cards' : ''"
+              [attr.aria-label]="column.total + (column.wipLimit !== null ? ' of ' + column.wipLimit : '') + ' cards' + (column.overLimit ? ', over the WIP limit' : '')"
+            >
+              @if (column.overLimit) { <mat-icon class="warn-icon">warning</mat-icon> }
+              {{ column.total }}@if (column.wipLimit !== null) {/{{ column.wipLimit }}}
+            </span>
+            @if (store.canEdit()) {
+              <button mat-icon-button [matMenuTriggerFor]="columnMenu" aria-label="Column options"><mat-icon>more_vert</mat-icon></button>
+              <mat-menu #columnMenu="matMenu">
+                <button mat-menu-item (click)="editColumn(column)"><mat-icon>edit</mat-icon> Rename or set WIP limit</button>
+              </mat-menu>
+            }
+          </header>
+
+          <div
+            class="cards"
+            cdkDropList
+            [id]="'column-' + column.id"
+            [cdkDropListData]="column"
+            [cdkDropListDisabled]="!store.canEdit()"
+            (cdkDropListDropped)="onDrop($event)"
+          >
+            @for (card of column.cards; track card.id) {
+              <app-card-tile
+                cdkDrag
+                [cdkDragData]="card"
+                [cdkDragDisabled]="!store.canEdit()"
+                [card]="card"
+                [membersById]="store.membersById()"
+                [labelsById]="store.labelsById()"
+                [canEdit]="store.canEdit()"
+                [menu]="cardMenu"
+                (open)="openCard(card.id)"
+              />
+            } @empty {
+              <p class="empty">{{ store.hasActiveFilters() && column.total > 0 ? 'No cards match the filters.' : 'No cards here yet.' }}</p>
+            }
+          </div>
+
+          @if (store.canEdit()) {
+            <app-add-card (added)="addCard(column.id, $event)" />
+          }
+        </section>
+      }
+    </div>
+
+    <!-- One menu for every card; each tile's button passes its own card in. -->
+    <mat-menu #cardMenu="matMenu">
+      <ng-template matMenuContent let-card="card">
+        <button mat-menu-item (click)="openCard(card.id)"><mat-icon>open_in_new</mat-icon> Open card</button>
+        <button mat-menu-item (click)="moveToTop(card)"><mat-icon>vertical_align_top</mat-icon> Move to top of column</button>
+        <div class="menu-heading" role="presentation">Move to column</div>
+        @for (target of store.columns(); track target.id) {
+          @if (target.id !== card.columnId) {
+            <button mat-menu-item (click)="moveToColumn(card, target.id)"><mat-icon>arrow_forward</mat-icon> {{ target.name }}</button>
+          }
+        }
+      </ng-template>
+    </mat-menu>
+
+    <router-outlet />
+  </div>
+} @else {
+  <p class="loading" role="status">Loading board…</p>
+}

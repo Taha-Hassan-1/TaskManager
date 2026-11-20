@@ -340,6 +340,28 @@ public class BoardApiTests : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task CardsWithEqualPositions_AreOrderedByIdAndCanBeMovedBetween()
+    {
+        // Two people (or two quick requests) adding to a column at the same moment both compute the same position.
+        var s = await BoardTestKit.SeedBoardAsync(_factory);
+        await _factory.WithDbAsync(async db =>
+        {
+            await db.Tasks.Where(t => t.Id == s.OtherCardId).ExecuteUpdateAsync(u => u.SetProperty(t => t.Position, 1024d));
+            return 0;
+        });
+        Assert.Equal(["First", "Second"], TitlesIn(await GetBoardAsync(s), s.TodoId)); // stable: lower id first
+
+        var third = await (await SendAsync(HttpMethod.Post, $"/api/boards/{s.BoardId}/tasks", s.Editor, new { title = "Third", columnId = s.TodoId })).ReadAsync<CardDto>();
+        var moved = await SendAsync(HttpMethod.Patch, $"/api/tasks/{third.Id}/move", s.Editor,
+            new { columnId = s.TodoId, beforeCardId = s.OtherCardId, rowVersion = third.RowVersion });
+
+        Assert.Equal(HttpStatusCode.OK, moved.StatusCode);
+        var cards = (await GetBoardAsync(s)).Columns[0].Cards;
+        Assert.Equal(["First", "Third", "Second"], cards.Select(c => c.Title));
+        Assert.Equal(3, cards.Select(c => c.Position).Distinct().Count()); // the tie was renumbered away
+    }
+
+    [Fact]
     public async Task Move_RejectsBadTargets()
     {
         var s = await BoardTestKit.SeedBoardAsync(_factory);

@@ -27,3 +27,25 @@ jobs:
       - run: dotnet restore TaskManager.slnx
       - run: dotnet build TaskManager.slnx --no-restore -warnaserror
       - run: dotnet test TaskManager.slnx --no-build
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      # The generated API client must match client/openapi.json (which the backend tests keep in step with the API).
+      - name: Generated API client is up to date
+        run: |
+          npx ng-openapi-gen
+          git diff --exit-code -- src/app/api
+      - run: npm test -- --no-watch
+      - run: npm run build
+
