@@ -2,7 +2,32 @@
 
 TeamBoard ships as **one container**: the API, serving the built Angular app, talking to a SQL Server database. Anything that can run a container, give it a SQL Server-compatible database and pass it environment variables can host it.
 
-> **Status.** The image, the compose file and the CI job that builds the image are written, but **none of it has been run**: there is no Docker on the machine this was built on. The same steps were verified without Docker: the Release build, the `--migrate` step, the API serving the built app from a folder, the health endpoints, and the end-to-end tests against that setup. **No host is chosen and nothing is deployed**, so there is no live URL yet; the spec wanted the host picked together with GameVault's, on the day, once free-tier limits have been checked.
+> **Status.** The image, the compose file and the CI job that builds the image are written, but **none of it has been run**: there is no Docker on the machine this was built on. The same steps were verified without Docker: the Release build, the `--migrate` step, the API serving the built app from a folder, the health endpoints, and the end-to-end tests against that setup. **The host is chosen (below) but nothing is deployed**, so there is no live URL yet. `deploy/azure.ps1` has never been run either: it needs an Azure account, and it is written from the CLI documentation.
+
+## The chosen host: Azure Container Apps and Azure SQL
+
+Decision record: [015](decisions/015-hosting.md). Chosen on 2026-11-20 from the current free-tier pages; **check them again before you deploy**, because limits change:
+
+- [Azure SQL Database free offer](https://learn.microsoft.com/en-us/azure/azure-sql/database/free-offer): per database each month, 100,000 vCore-seconds, 32 GB of data and 32 GB of backup, renewing for the life of the subscription; auto-pauses when used up (the default) or bills the overage.
+- [Azure Container Apps pricing](https://azure.microsoft.com/en-us/pricing/details/container-apps/): the first 180,000 vCPU-seconds, 360,000 GiB-seconds and 2 million requests each month are free; beyond that, per second.
+
+**What you do, in order**
+
+1. Create an Azure account (a card is required even for the free offers) and install the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli); then `az login` and `az extension add -n containerapp`.
+2. Push to `main` and let CI publish `ghcr.io/<owner>/teamboard:latest` (the `image` job). On GitHub, open the package once and make it **public**, so Azure can pull it without credentials.
+3. Run the script, one step at a time the first time:
+   ```powershell
+   .\deploy\azure.ps1 -Name teamboard-yourname -Image ghcr.io/<owner>/teamboard:latest
+   ```
+   It creates a resource group, the SQL server and the free database, a Container Apps environment, a one-off job that applies the migrations (the app is only created if that succeeds), and the app. It prints the address. `az group delete --name <name>-rg` removes all of it.
+4. Open `https://<address>/health/ready`, register, create a board; then work through the checklist at the bottom of this page.
+
+**What to expect**
+
+- **Cold start.** The app scales to zero when idle, which keeps it inside the free grant. The first visit after a quiet spell waits for the container to start *and* for the serverless database to wake, about a minute. Pass `-AlwaysOn` (one replica always running) for a day you are showing it to someone; it uses more of the grant.
+- **One replica only** (`--max-replicas 1`), because live-update groups are in memory.
+- **Secrets** (the SQL connection string and the JWT key, which the script generates) are stored as Container Apps secrets and handed to the app as environment variables. Nothing is written to disk or to the repository.
+- **When the free database allowance runs out** it auto-pauses until the next month, and the site shows errors until then. That is the price of the free offer.
 
 ## What the host must provide
 
@@ -61,7 +86,7 @@ Logs are JSON on stdout. A user's report of "something went wrong" comes with a 
 
 ## Before going live: the checklist
 
-- [ ] a host chosen, with its free-tier limits checked that day (database size, sleep-on-idle, WebSocket support)
+- [x] a host chosen (Azure Container Apps and Azure SQL); its free-tier limits re-checked on the day you deploy
 - [ ] `ForwardedHeaders__Enabled=true`, and the app **not** reachable except through the platform's proxy
 - [ ] a strong `Jwt__Key` that is not the one used anywhere else
 - [ ] a backup plan for the database

@@ -85,10 +85,24 @@ jobs:
           name: playwright-results
           path: client/test-results/
 
-  # The image must build on every push; it is not published anywhere yet (see docs/DEPLOY.md).
+  # The image builds on every push. On main it is also published to GitHub's container registry, where the host pulls it from.
+  # After the first publish, make the package public once (GitHub > Packages > teamboard > Package settings).
   image:
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [backend, frontend, e2e]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
-      - run: docker build --tag teamboard:${{ github.sha }} .
+      - name: Build
+        run: docker build --tag teamboard:${{ github.sha }} .
+      - name: Publish (main only)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"   # registry names must be lower case
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker tag teamboard:${{ github.sha }} "ghcr.io/$owner/teamboard:${{ github.sha }}"
+          docker tag teamboard:${{ github.sha }} "ghcr.io/$owner/teamboard:latest"
+          docker push "ghcr.io/$owner/teamboard:${{ github.sha }}"
+          docker push "ghcr.io/$owner/teamboard:latest"

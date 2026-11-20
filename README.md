@@ -4,7 +4,7 @@
 
 A real-time collaborative kanban board. Teams create boards, invite people with Viewer, Editor or Owner roles, and drag cards between columns; everyone looking at a board sees changes the moment they happen. ASP.NET Core 10 Web API with hand-built token authentication and SignalR, EF Core on SQL Server, and an Angular front end with a generated API client.
 
-**Live demo:** not deployed yet. The image and the deployment guide are written ([docs/DEPLOY.md](docs/DEPLOY.md)); the host is still to be chosen. A GIF of two browsers syncing will go here once there is something to record against a deployed URL; until then, these two screenshots are Ann's and Bob's browsers after Ann added a card and dragged it, and Bob moved it on, without either page reloading:
+**Live demo:** not deployed yet. The host is chosen (Azure Container Apps plus Azure SQL's free offer) and the image, the deploy script and the guide are written ([docs/DEPLOY.md](docs/DEPLOY.md)), but the Azure steps have not been run yet. A GIF of two browsers syncing will go here once there is something to record against a deployed URL; until then, these two screenshots are Ann's and Bob's browsers after Ann added a card and dragged it, and Bob moved it on, without either page reloading:
 
 | Ann | Bob |
 |---|---|
@@ -91,4 +91,4 @@ loadtest/  docs/  Dockerfile  docker-compose.yml
 
 ## Status
 
-All seven milestones of the plan are built and tested (M0 to M6). **Not done:** the deployment itself (no host chosen, so no live URL, no deployed performance figure, and no GIF), the Docker image has not been built on a machine with Docker, and live updates assume a single app instance. [docs/DEPLOY.md](docs/DEPLOY.md) has the checklist.
+All seven milestones of the plan are built and tested (M0 to M6). **Not done:** the deployment itself (host chosen, but nothing deployed, so no live URL, no deployed performance figure, and no GIF), the Docker image has not been built on a machine with Docker, and live updates assume a single app instance. [docs/DEPLOY.md](docs/DEPLOY.md) has the checklist.

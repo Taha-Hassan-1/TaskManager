@@ -18,4 +18,4 @@ The decisions behind TeamBoard, one short record each: what was decided, why, wh
 | 12 | [API contract](012-api-contract.md) | Accepted, with a tool change |
 | 13 | [Serving](013-serving.md) | Accepted |
 | 14 | [Validation](014-validation.md) | Accepted |
-| 15 | [Hosting](015-hosting.md) | Open |
+| 15 | [Hosting](015-hosting.md) | Accepted (host chosen, not yet deployed) |
