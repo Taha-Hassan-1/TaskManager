@@ -61,15 +61,13 @@ public sealed class BoardsController(
             .Select(b => new { b.Id, b.Name, b.OwnerId })
             .SingleAsync(ct);
 
-        var me = UserId;
-        var myRole = await Db.BoardMembers.AsNoTracking()
-            .Where(m => m.BoardId == id && m.UserId == me).Select(m => m.Role).SingleAsync(ct);
-
         var members = await Db.BoardMembers.AsNoTracking()
             .Where(m => m.BoardId == id)
             .OrderBy(m => m.User.Username)
             .Select(m => new MemberDto(m.UserId, m.User.Username, m.User.Email, m.Role))
             .ToListAsync(ct);
+        var me = UserId;
+        var myRole = members.Single(m => m.UserId == me).Role; // authorised above, so I am in the list: no separate query
 
         var labels = await Db.Labels.AsNoTracking()
             .Where(l => l.BoardId == id).OrderBy(l => l.Name)

@@ -25,10 +25,17 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     /// <summary>Requests per minute per endpoint for the auth rate limiter. High by default so tests never trip it.</summary>
     protected virtual int AuthPermitPerMinute => 1000;
 
+    protected virtual string EnvironmentName => "Development";
+
+    /// <summary>Extra configuration for a test that needs the app set up differently (proxy headers, SPA folder...).</summary>
+    protected virtual IReadOnlyDictionary<string, string> ExtraSettings => new Dictionary<string, string>();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Development");
+        builder.UseEnvironment(EnvironmentName);
+        foreach (var (key, value) in ExtraSettings) builder.UseSetting(key, value);
         builder.UseSetting("Jwt:Key", JwtKey);
+        builder.UseSetting("Serilog:MinimumLevel:Default", "Warning"); // keep test output readable
         builder.UseSetting("ConnectionStrings:DefaultConnection", ConnectionString);
         builder.UseSetting("RateLimit:AuthPermitPerMinute", AuthPermitPerMinute.ToString());
     }

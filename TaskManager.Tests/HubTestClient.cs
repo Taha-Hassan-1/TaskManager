@@ -41,14 +41,14 @@ public sealed class HubTestClient : IAsyncDisposable
     public async Task JoinAsync(int boardId) => await Connection.InvokeAsync("JoinBoard", boardId);
 
     /// <summary>The next message of this kind that satisfies the filter, within a few seconds.</summary>
-    public async Task<Message> WaitForAsync(string method, Func<JsonElement, bool>? where = null, int timeoutMs = 5000)
+    public async Task<Message> WaitForAsync(string method, Func<JsonElement, bool>? where = null, int timeoutMs = 5000, int pollMs = 20)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
         while (DateTime.UtcNow < deadline)
         {
             var hit = _received.FirstOrDefault(m => m.Method == method && (where?.Invoke(m.Body) ?? true));
             if (hit is not null) return hit;
-            await Task.Delay(20);
+            await Task.Delay(pollMs);
         }
         throw new TimeoutException($"No {method} arrived. Received: {string.Join(", ", _received.Select(m => m.Method))}");
     }

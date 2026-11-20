@@ -1,0 +1,44 @@
+=== board load · 2026-11-20 18:14 ===
+Board load: 500 cards, 5 columns, 8 labels, 300 comments, 50 members
+before (entity graph, tracked)
+  latency (sequential, in-process): n=12  p50=5084.7 ms  p95=5483.9 ms  p99=5483.9 ms  max=5483.9 ms
+  response: 242,904 bytes raw, 21,874 bytes gzip
+  one request: 2 SQL statements, 49.1 ms in the database
+    [    4.6 ms] SELECT TOP(2) [b].[Role] FROM [BoardMembers] AS [b] WHERE [b].[BoardId] = @boardId AND [b].[UserId] = @userId
+    [   44.5 ms] SELECT [b1].[Id], [b1].[CreatedAt], [b1].[Name], [b1].[OwnerId], [s].[BoardId], [s].[UserId], [s].[Role], [s].[Id], [s].[CreatedAt], [s].[Email], [s].[PasswordHash], [s].[Username], [l].[Id], [l].[BoardId], [l].[Color], [l].[Name]
+after  (flat projections, no tracking)
+  latency (sequential, in-process): n=200  p50=10.2 ms  p95=19.0 ms  p99=26.3 ms  max=31.9 ms
+  response: 242,904 bytes raw, 21,890 bytes gzip
+  one request: 7 SQL statements, 22.3 ms in the database
+    [    0.5 ms] SELECT TOP(2) [b].[Role] FROM [BoardMembers] AS [b] WHERE [b].[BoardId] = @boardId AND [b].[UserId] = @userId
+    [    1.8 ms] SELECT TOP(2) [b].[Id], [b].[Name], [b].[OwnerId] FROM [Boards] AS [b] WHERE [b].[Id] = @id
+    [    3.6 ms] SELECT [b].[UserId], [u].[Username], [u].[Email], [b].[Role] FROM [BoardMembers] AS [b] INNER JOIN [Users] AS [u] ON [b].[UserId] = [u].[Id] WHERE [b].[BoardId] = @id ORDER BY [u].[Username]
+    [    3.7 ms] SELECT [l].[Id], [l].[Name], [l].[Color] FROM [Labels] AS [l] WHERE [l].[BoardId] = @id ORDER BY [l].[Name]
+    [    2.2 ms] SELECT [c].[Id], [c].[Name], [c].[Position], [c].[WipLimit] FROM [Columns] AS [c] WHERE [c].[BoardId] = @id ORDER BY [c].[Position], [c].[Id]
+    [    5.2 ms] SELECT [t].[Id], [t].[ColumnId], [t].[Title], [t].[Description], [t].[Position], [t].[Priority], [t].[DueDate], [t].[AssigneeId], [t].[CreatedById], [t].[CreatedAt], [t].[RowVersion], ( SELECT COUNT(*) FROM [Comments] AS [c] WHERE
+    [    5.3 ms] SELECT [t].[TaskItemId], [t].[LabelId] FROM [TaskLabels] AS [t] INNER JOIN [Tasks] AS [t0] ON [t].[TaskItemId] = [t0].[Id] WHERE [t0].[BoardId] = @id
+
+=== fan-out · 2026-11-20 18:14 ===
+Live move to 50 connected clients (long polling over the in-memory test server, so a worst case)
+  move accepted until the last of 50 clients has it: n=25  p50=43.9 ms  p95=62.3 ms  p99=196.0 ms  max=196.0 ms
+  pushed message: 122 bytes; the whole board would be 242,910 bytes (1991x)
+
+=== activity feed · 2026-11-20 18:14 ===
+Activity feed: first page of 30 from 5,000 entries
+  first page: 2 SQL statements, 12.8 ms in the database
+    [    1.8 ms] SELECT TOP(2) [b].[Role] FROM [BoardMembers] AS [b] WHERE [b].[BoardId] = @boardId AND [b].[UserId] = @userId
+    [   11.0 ms] SELECT [a0].[Id], [a0].[Type], [a0].[ActorId], [u].[Username] AS [ActorName], [a0].[TaskItemId], [a0].[Payload], [a0].[CreatedAt] FROM ( SELECT TOP(@p) [a].[Id], [a].[ActorId], [a].[CreatedAt], [a].[Payload], [a].[TaskItemId], [a]
+  latency: n=200  p50=2.7 ms  p95=4.2 ms  p99=4.9 ms  max=8.1 ms
+  page 102 (cursor): n=200  p50=2.7 ms  p95=4.6 ms  p99=5.9 ms  max=7.2 ms
+
+=== move · 2026-11-20 18:14 ===
+Move one card to the bottom of another column (500-card board)
+  one move: 6 SQL statements, 14.5 ms in the database
+    [    0.3 ms] SELECT TOP(2) [t].[Id], [t].[AssigneeId], [t].[BoardId], [t].[ColumnId], [t].[CreatedAt], [t].[CreatedById], [t].[Description], [t].[DueDate], [t].[Position], [t].[Priority], [t].[RowVersion], [t].[Title] FROM [Tasks] AS [t] WHERE
+    [    0.4 ms] SELECT TOP(2) [b].[Role] FROM [BoardMembers] AS [b] WHERE [b].[BoardId] = @boardId AND [b].[UserId] = @userId
+    [    2.3 ms] SELECT CASE WHEN EXISTS ( SELECT 1 FROM [Columns] AS [c] WHERE [c].[Id] = @request_ColumnId AND [c].[BoardId] = @task_BoardId) THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END
+    [    7.2 ms] SELECT [t].[Id], [t].[Position] FROM [Tasks] AS [t] WHERE [t].[ColumnId] = @request_ColumnId AND [t].[Id] <> @id ORDER BY [t].[Position], [t].[Id]
+    [    2.6 ms] SET IMPLICIT_TRANSACTIONS OFF; SET NOCOUNT ON; UPDATE [Tasks] SET [ColumnId] = @p0, [Position] = @p1 OUTPUT INSERTED.[RowVersion] WHERE [Id] = @p2 AND [RowVersion] = @p3;
+    [    1.7 ms] SET IMPLICIT_TRANSACTIONS OFF; SET NOCOUNT ON; INSERT INTO [Activity] ([ActorId], [BoardId], [CreatedAt], [Payload], [TaskItemId], [Type]) OUTPUT INSERTED.[Id] VALUES (@p0, @p1, @p2, @p3, @p4, @p5);
+  latency (sequential, in-process): n=150  p50=6.6 ms  p95=9.1 ms  p99=12.0 ms  max=15.4 ms
+

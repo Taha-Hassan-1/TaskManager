@@ -1,0 +1,47 @@
+# Everything TeamBoard needs on one machine: SQL Server, the migrations, and the app.
+#
+#   cp .env.example .env     # then fill in the two values
+#   docker compose up --build
+#   -> http://localhost:8080
+#
+# For development without Docker, see README.md: dotnet run for the API and ng serve (with its proxy) for Angular.
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SQL_PASSWORD:?Set SQL_PASSWORD in .env (8+ characters, upper and lower case, digit and symbol)}
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # An explicit, one-off step: apply the migrations, then exit. The app starts only after it succeeded.
+  migrate:
+    build: .
+    command: ["--migrate"]
+    environment:
+      ConnectionStrings__DefaultConnection: &connection "Server=db;Database=TeamBoard;User Id=sa;Password=${SQL_PASSWORD};TrustServerCertificate=True"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      ConnectionStrings__DefaultConnection: *connection
+      Jwt__Key: ${JWT_KEY:?Set JWT_KEY in .env (at least 32 random characters)}
+      # Plain http on localhost. Behind a real HTTPS proxy, remove this and set ForwardedHeaders__Enabled=true.
+      Https__Redirect: "false"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  sqldata:
