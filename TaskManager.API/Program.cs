@@ -1,6 +1,9 @@
+using System.Text.Json.Serialization;
+using Scalar.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using TaskManager.API.Auth;
 using TaskManager.API.Data;
+using TaskManager.API.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,9 +14,12 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddTeamBoardAuth(builder.Configuration);
+builder.Services.AddTeamBoardBoards();
 
 builder.Services.AddProblemDetails();
-builder.Services.AddControllers();
+// Enums travel as names ("Owner", "High"), which is what the generated Angular client expects.
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -21,6 +27,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference(); // dev-only explorer at /scalar
 }
 
 app.UseStatusCodePages(); // 401/403/404 bodies as ProblemDetails
