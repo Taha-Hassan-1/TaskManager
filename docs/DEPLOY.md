@@ -19,7 +19,7 @@ Decision record: [015](decisions/015-hosting.md). Chosen on 2026-11-20 from the 
    ```powershell
    .\deploy\azure.ps1 -Name teamboard-yourname -Image ghcr.io/<owner>/teamboard:latest
    ```
-   It creates a resource group, the SQL server and the free database, a Container Apps environment, a one-off job that applies the migrations (the app is only created if that succeeds), and the app. It prints the address. `az group delete --name <name>-rg` removes all of it.
+   It stops at the first failing step. New subscriptions are often refused in busy regions ("not accepting new customers"; West Europe did exactly that), so unless you pass `-Location` it tries several regions and uses the first that accepts a SQL server. It creates a resource group, the SQL server and the free database, a Container Apps environment, a one-off job that applies the migrations (the app is only created if that succeeds), and the app. It prints the address. `az group delete --name <name>-rg` removes all of it.
 4. Open `https://<address>/health/ready`, register, create a board; then work through the checklist at the bottom of this page.
 
 **What to expect**
