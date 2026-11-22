@@ -9,7 +9,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
     '[style.background]': 'color()',
     '[style.width.px]': 'size()',
     '[style.height.px]': 'size()',
-    '[style.fontSize.px]': 'size() * 0.42',
+    '[style.fontSize.px]': 'fontSize()',
     '[attr.title]': 'name()',
     role: 'img',
     '[attr.aria-label]': 'name()',
@@ -36,9 +36,11 @@ export class Avatar {
     return ((parts[0]?.[0] ?? '?') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
   });
 
+  readonly fontSize = computed(() => Math.max(11, Math.round(this.size() * 0.44)));
+
   readonly color = computed(() => {
     let hash = 0;
     for (const ch of this.name()) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-    return `hsl(${hash % 360} 45% 40%)`;
+    return `hsl(${hash % 360} 45% 30%)`; // dark enough for white text at every hue
   });
 }

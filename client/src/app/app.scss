@@ -1,6 +1,6 @@
 .shell {
   height: 56px;
-  background: linear-gradient(90deg, #0b57c9 0%, #3b7be8 100%);
+  background: var(--tb-brand-bg);
   color: #fff;
   box-shadow: 0 2px 6px rgba(16, 24, 40, 0.18);
   position: relative; z-index: 2;

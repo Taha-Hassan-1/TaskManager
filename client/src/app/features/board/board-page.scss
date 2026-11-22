@@ -3,8 +3,7 @@
 .board-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 56px);
-  background: linear-gradient(160deg, #eef3fb 0%, #f6f1fb 55%, #fbf3ee 100%);
+  height: calc(100dvh - 56px); // dvh: the phone's address bar no longer cuts the board off
 }
 
 // ---- header: one calm toolbar, compact controls ----
@@ -19,7 +18,7 @@
   border-bottom: 1px solid var(--mat-sys-outline-variant);
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
 
-  h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+  h1 { margin: 0; min-width: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; overflow-wrap: anywhere; text-wrap: balance; }
   .spacer { flex: 1; }
   .role {
     font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
@@ -33,10 +32,7 @@
   mat-form-field {
     --mat-form-field-container-height: 40px;
     --mat-form-field-container-vertical-padding: 8px;
-    --mat-form-field-outlined-label-text-size: 14px;
-    --mat-form-field-container-text-size: 14px;
-    --mat-form-field-filled-with-label-container-padding-top: 12px;
-    --mat-form-field-filled-with-label-container-padding-bottom: 4px;
+    // Text stays at 16px: smaller input text makes iOS Safari zoom the page on focus.
     --mat-form-field-outlined-container-shape: 20px;
     --mat-form-field-subscript-text-size: 0;
   }
@@ -48,7 +44,15 @@
   mat-icon[matSuffix] { padding-right: 12px; color: var(--mat-sys-on-surface-variant); }
 }
 
-.workspace { flex: 1; min-height: 0; display: flex; }
+.workspace { flex: 1; min-height: 0; display: flex; position: relative; }
+
+// Phones: the page scrolls as a whole (a fixed-height board under a tall toolbar would leave no room for the
+// columns), the search takes a full row and the two filters share the next one.
+@media (max-width: 720px) {
+  .board-page { height: auto; min-height: calc(100dvh - 56px); }
+  .workspace { min-height: 70dvh; }
+  .board-header { padding: 8px 16px; .filter { flex: 1 1 130px; width: auto; } .filter.search { flex: 1 1 100%; } }
+}
 
 .columns {
   flex: 1;
@@ -62,7 +66,7 @@
 
 // ---- columns: a soft panel with a colour stripe on top ----
 .column {
-  --accent: #5b8def;
+  --accent: var(--tb-accent-0);
   flex: 0 0 300px;
   width: 300px;
   max-height: 100%;
@@ -71,7 +75,7 @@
   position: relative;
   background: rgba(255, 255, 255, 0.62);
   backdrop-filter: blur(6px);
-  border-radius: 14px;
+  border-radius: 20px; // 10px card radius + 10px of padding around the cards
   border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 12px rgba(16, 24, 40, 0.05);
   overflow: hidden;
@@ -82,12 +86,12 @@
     background: var(--accent);
     flex: none;
   }
-  &[data-accent='0'] { --accent: #5b8def; }
-  &[data-accent='1'] { --accent: #f2a03d; }
-  &[data-accent='2'] { --accent: #4cb782; }
-  &[data-accent='3'] { --accent: #a174e8; }
-  &[data-accent='4'] { --accent: #e7678a; }
-  &[data-accent='5'] { --accent: #3fb6c7; }
+  &[data-accent='0'] { --accent: var(--tb-accent-0); }
+  &[data-accent='1'] { --accent: var(--tb-accent-1); }
+  &[data-accent='2'] { --accent: var(--tb-accent-2); }
+  &[data-accent='3'] { --accent: var(--tb-accent-3); }
+  &[data-accent='4'] { --accent: var(--tb-accent-4); }
+  &[data-accent='5'] { --accent: var(--tb-accent-5); }
 
   &.over-limit { box-shadow: 0 0 0 2px #f57c00, 0 4px 12px rgba(245, 124, 0, 0.18); }
 }
@@ -104,9 +108,9 @@
     color: var(--mat-sys-on-surface);
   }
   .count {
-    display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums;
     padding: 1px 9px; border-radius: 999px;
-    background: color-mix(in srgb, var(--accent) 18%, white); color: color-mix(in srgb, var(--accent) 60%, black);
+    background: color-mix(in srgb, var(--accent) 18%, white); color: color-mix(in srgb, var(--accent) 50%, black);
     &.warn { background: #fff3e0; color: #b85c00; font-weight: 600; }
     .warn-icon { font-size: 16px; width: 16px; height: 16px; }
   }
@@ -128,17 +132,10 @@
   background: var(--mat-sys-surface-container-high); color: var(--mat-sys-on-surface-variant);
   .dot { width: 8px; height: 8px; border-radius: 50%; background: #9e9e9e; }
   &.live { background: #e6f4ea; color: #1e6b3a; }
-  &.live .dot { background: #2e7d32; box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.5); animation: pulse 2.4s infinite; }
+  &.live .dot { background: #2e7d32; }
   &.connecting .dot, &.reconnecting .dot { background: #f9a825; }
   &.offline .dot { background: #c62828; }
 }
-
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.45); }
-  70% { box-shadow: 0 0 0 7px rgba(46, 125, 50, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0); }
-}
-@media (prefers-reduced-motion: reduce) { .sync-chip.live .dot { animation: none; } }
 
 .offline-banner {
   margin: 0; padding: 8px 20px; font-size: 13px; background: #fff3e0; color: #5d3a00; border-bottom: 1px solid #ffcc80;
@@ -154,7 +151,8 @@
 .menu-heading { padding: 8px 16px 4px; font-size: 12px; color: var(--mat-sys-on-surface-variant); }
 
 // While dragging: the lifted card, and the gap it will land in.
-.cdk-drag-preview { box-shadow: var(--mat-sys-level4); border-radius: 10px; opacity: 0.97; overflow: hidden; transform: rotate(1.5deg); }
+.cdk-drag-preview { box-shadow: var(--mat-sys-level4); border-radius: 10px; opacity: 0.97; overflow: hidden; }
+@media (prefers-reduced-motion: no-preference) { .cdk-drag-preview { transform: rotate(1.5deg); } }
 .cdk-drag-placeholder { opacity: 0.3; }
 .cdk-drag-animating { transition: transform 200ms cubic-bezier(0, 0, 0.2, 1); }
 .cards.cdk-drop-list-dragging app-card-tile:not(.cdk-drag-placeholder) { transition: transform 200ms cubic-bezier(0, 0, 0.2, 1); }

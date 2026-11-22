@@ -11,27 +11,26 @@ import { LabelChip } from '../../shared/label-chip';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [Avatar, LabelChip, MatButtonModule, MatIconModule, MatMenuModule],
   template: `
-    <div
-      class="tile"
-      [class]="'priority-' + card().priority.toLowerCase()"
-      role="button"
-      tabindex="0"
-      [attr.aria-label]="'Open card: ' + card().title"
-      (click)="open.emit()"
-      (keydown.enter)="open.emit()"
-    >
+    <div class="tile" [class]="'priority-' + card().priority.toLowerCase()">
       @if (labels().length) {
         <div class="labels">
           @for (label of labels(); track label.id) { <app-label-chip [label]="label" /> }
         </div>
       }
-      <div class="title">{{ card().title }}</div>
+      <!-- The title is the one real button; its ::after stretches over the whole tile, so the tile is clickable
+           without a button nested inside a button (which screen readers cannot reach). -->
+      <button type="button" class="open" [attr.aria-label]="'Open card: ' + card().title" (click)="open.emit()">
+        <span class="title">{{ card().title }}</span>
+      </button>
       <div class="meta">
         @if (card().priority === 'High' || card().priority === 'Urgent') {
           <span class="badge priority" [title]="card().priority + ' priority'"><mat-icon>priority_high</mat-icon>{{ card().priority }}</span>
         }
         @if (card().dueDate) {
-          <span class="badge" [class.overdue]="overdue()" title="Due date"><mat-icon>event</mat-icon>{{ card().dueDate!.slice(0, 10) }}</span>
+          <span class="badge" [class.overdue]="overdue()" [attr.title]="overdue() ? 'Overdue' : 'Due date'">
+            <mat-icon aria-hidden="true">{{ overdue() ? 'event_busy' : 'event' }}</mat-icon>
+            @if (overdue()) { <span class="visually-hidden">Overdue: </span> }{{ card().dueDate!.slice(0, 10) }}
+          </span>
         }
         @if (card().commentCount > 0) {
           <span class="badge" title="Comments"><mat-icon>chat_bubble_outline</mat-icon>{{ card().commentCount }}</span>
@@ -45,8 +44,6 @@ import { LabelChip } from '../../shared/label-chip';
           class="menu"
           [matMenuTriggerFor]="menu()"
           [matMenuTriggerData]="{ card: card() }"
-          (click)="$event.stopPropagation()"
-          (keydown.enter)="$event.stopPropagation()"
           aria-label="Card options"
         >
           <mat-icon>more_vert</mat-icon>
@@ -57,28 +54,38 @@ import { LabelChip } from '../../shared/label-chip';
   styles: `
     :host { display: block; }
     .tile {
-      position: relative; background: #fff; border-radius: 10px; padding: 12px 14px;
-      border: 1px solid rgba(16, 24, 40, 0.08); border-left: 4px solid transparent;
-      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06); cursor: pointer;
+      position: relative; background: var(--tb-card-bg); border-radius: 10px; padding: 12px 14px;
+      border: 1px solid var(--tb-hairline); border-left: 4px solid transparent;
+      box-shadow: var(--tb-shadow-card); cursor: pointer;
       transition: box-shadow 150ms ease, transform 150ms ease;
-      &:hover, &:focus-visible { box-shadow: 0 6px 16px rgba(16, 24, 40, 0.12); transform: translateY(-1px); outline: none; }
-      &:focus-visible { outline: 2px solid var(--mat-sys-primary); }
-      @media (prefers-reduced-motion: reduce) { transition: none; &:hover, &:focus-visible { transform: none; } }
+      -webkit-tap-highlight-color: transparent;
+      &:has(.open:focus-visible) { outline: 2px solid var(--mat-sys-primary); outline-offset: 2px; }
+      // Hover feedback only where a pointer can really hover: on touch it would stay "stuck" after a tap.
+      @media (hover: hover) { &:hover { box-shadow: var(--tb-shadow-card-hover); } }
+      @media (hover: hover) and (prefers-reduced-motion: no-preference) { &:hover { transform: translateY(-1px); } }
+      @media (prefers-reduced-motion: reduce) { transition: none; }
     }
     .priority-urgent { border-left-color: #d32f2f; }
     .priority-high { border-left-color: #f57c00; }
     .priority-low { border-left-color: #90a4ae; }
     .labels { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
-    .title { font-size: 14px; line-height: 20px; font-weight: 500; word-break: break-word; padding-right: 28px; }
+    .open {
+      display: block; width: 100%; padding: 0 28px 0 0; margin: 0; border: 0; background: none; color: inherit;
+      font: inherit; text-align: start; cursor: pointer; outline: none;
+      &::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+    }
+    .title { display: block; font-size: 14px; line-height: 20px; font-weight: 500; overflow-wrap: anywhere; text-wrap: pretty; }
     .meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; min-height: 24px; }
     .spacer { flex: 1; }
     .badge {
-      display: inline-flex; align-items: center; gap: 2px; font-size: 12px; color: var(--mat-sys-on-surface-variant);
+      display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--mat-sys-on-surface-variant);
       mat-icon { font-size: 16px; width: 16px; height: 16px; }
     }
     .badge.overdue { color: var(--mat-sys-error); font-weight: 500; }
     .badge.priority { color: #b85c00; font-weight: 500; }
-    .menu { position: absolute; top: 2px; right: 0; opacity: 0.6; &:hover, &:focus-visible { opacity: 1; } }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    // Above the tile-wide button, so the menu stays clickable.
+    .menu { position: absolute; top: 2px; right: 0; z-index: 1; opacity: 0.7; &:hover, &:focus-visible { opacity: 1; } }
   `,
 })
 export class CardTile {

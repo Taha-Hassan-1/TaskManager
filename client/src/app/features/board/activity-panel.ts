@@ -45,13 +45,17 @@ const PAGE_SIZE = 30;
     }
   `,
   styles: `
-    :host { display: flex; flex-direction: column; width: 320px; flex: none; background: var(--mat-sys-surface); border-left: 1px solid var(--mat-sys-outline-variant); overflow-y: auto; }
+    :host { box-sizing: border-box; display: flex; flex-direction: column; width: 320px; flex: none; background: var(--mat-sys-surface); border-left: 1px solid var(--mat-sys-outline-variant); overflow-y: auto; overscroll-behavior: contain; }
+    // On a narrow screen a side-by-side panel would squeeze the columns to nothing: it floats over them instead.
+    @media (max-width: 720px) {
+      :host { position: absolute; inset-block: 0; inset-inline-end: 0; width: min(320px, 100%); z-index: 5; box-shadow: var(--mat-sys-level3); }
+    }
     header { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 8px 16px; position: sticky; top: 0; background: inherit; border-bottom: 1px solid var(--mat-sys-outline-variant); }
     h2 { margin: 0; font-size: 16px; font-weight: 500; }
     ul { list-style: none; margin: 0; padding: 8px 16px; display: flex; flex-direction: column; gap: 14px; }
     li { display: flex; gap: 10px; }
     p { margin: 0; font-size: 13px; line-height: 18px; word-break: break-word; }
-    time { font-size: 12px; color: var(--mat-sys-on-surface-variant); }
+    time { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--mat-sys-on-surface-variant); }
     .empty { color: var(--mat-sys-on-surface-variant); font-size: 13px; }
     .more { margin: 0 8px 16px; }
   `,

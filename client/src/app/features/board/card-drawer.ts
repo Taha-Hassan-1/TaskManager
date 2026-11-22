@@ -1,3 +1,4 @@
+import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -20,13 +21,17 @@ import { findCard } from './board.model';
 import { BoardStore, CommentChange } from './board.store';
 
 const PRIORITIES: TaskPriority[] = ['Low', 'Normal', 'High', 'Urgent'];
-const LABEL_COLORS = ['#e53935', '#fb8c00', '#fdd835', '#43a047', '#1e88e5', '#8e24aa', '#6d4c41', '#546e7a'];
+const LABEL_COLORS = [
+  { value: '#e53935', name: 'Red' }, { value: '#fb8c00', name: 'Orange' }, { value: '#fdd835', name: 'Yellow' },
+  { value: '#43a047', name: 'Green' }, { value: '#1e88e5', name: 'Blue' }, { value: '#8e24aa', name: 'Purple' },
+  { value: '#6d4c41', name: 'Brown' }, { value: '#546e7a', name: 'Grey' },
+];
 
 /** The card opened over the board: edit its fields, labels and assignee, and read and write comments. */
 @Component({
   selector: 'app-card-drawer',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, MatSelectModule, Avatar, LabelChip],
+  imports: [CdkTrapFocus, DatePipe, ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, MatSelectModule, Avatar, LabelChip],
   templateUrl: './card-drawer.html',
   styleUrl: './card-drawer.scss',
   host: { '(document:keydown.escape)': 'onEscape()' },
@@ -69,7 +74,7 @@ export class CardDrawer {
   // new label
   readonly addingLabel = signal(false);
   newLabelName = '';
-  newLabelColor = LABEL_COLORS[4];
+  newLabelColor = LABEL_COLORS[4].value;
 
   readonly comments = computed(() => this.detail()?.comments ?? []);
 
@@ -307,14 +312,20 @@ export class CardDrawer {
     }
   }
 
-  async deleteComment(c: CommentDto): Promise<void> {
-    try {
-      await this.api.deleteComment(c.id);
-      this.detail.update((d) => d && { ...d, comments: d.comments.filter((x) => x.id !== c.id) });
-      this.store.upsertCard({ ...this.currentCard(), commentCount: this.comments().length });
-    } catch (e) {
-      this.notifier.error(toProblem(e).message);
-    }
+  deleteComment(c: CommentDto): void {
+    this.dialog
+      .open(ConfirmDialog, { data: { title: 'Delete this comment?', message: 'The comment is deleted for everyone. This cannot be undone.', confirmText: 'Delete comment' } })
+      .afterClosed()
+      .subscribe(async (confirmed) => {
+        if (!confirmed) return;
+        try {
+          await this.api.deleteComment(c.id);
+          this.detail.update((d) => d && { ...d, comments: d.comments.filter((x) => x.id !== c.id) });
+          this.store.upsertCard({ ...this.currentCard(), commentCount: this.comments().length });
+        } catch (e) {
+          this.notifier.error(toProblem(e).message);
+        }
+      });
   }
 
   private currentCard() {
