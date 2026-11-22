@@ -486,4 +486,4 @@ $RECYCLE.BIN/
 
 # Load test output, a built copy of the app for the API to serve, local environment
 loadtest/results.json
-TaskManager.API/wwwroot/
+TeamBoard.API/wwwroot/

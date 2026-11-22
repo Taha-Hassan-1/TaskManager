@@ -90,5 +90,6 @@ Logs are JSON on stdout. A user's report of "something went wrong" comes with a 
 - [ ] `ForwardedHeaders__Enabled=true`, and the app **not** reachable except through the platform's proxy
 - [ ] a strong `Jwt__Key` that is not the one used anywhere else
 - [ ] a backup plan for the database
-- [ ] `loadtest/load.mjs` run against the real URL (`BASE=https://...`), to put a deployed number next to the local one in [PERFORMANCE.md](PERFORMANCE.md)
-- [ ] the README's live link and the two-browser GIF filled in
+- [x] `loadtest/load.mjs` run against the real URL (`BASE=https://...`), with 8 users because the default sign-up limit is 10 a minute per address; the result is in [PERFORMANCE.md](PERFORMANCE.md)
+- [x] the README's live link filled in
+- [ ] the two-browser GIF

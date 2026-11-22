@@ -1,0 +1,13 @@
+namespace TeamBoard.API.Models;
+
+public enum BoardRole { Viewer, Editor, Owner }
+
+public enum TaskPriority { Low = 0, Normal = 1, High = 2, Urgent = 3 }
+
+public enum ActivityType
+{
+    BoardCreated, BoardRenamed, MemberAdded, MemberRemoved, MemberRoleChanged,
+    ColumnCreated, ColumnUpdated,
+    TaskCreated, TaskUpdated, TaskMoved, TaskDeleted,
+    CommentAdded
+}

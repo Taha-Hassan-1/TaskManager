@@ -20,7 +20,7 @@ The target from the spec: a board of **500 cards loads in under 200 ms at the 95
 `GET /api/boards/{id}` returns the board with its columns, cards, members and labels in one response. Test board: 500 cards in 5 columns, 8 labels, 300 comments, 50 members. Run it with:
 
 ```powershell
-$env:PERF = "1"; dotnet test TaskManager.Tests --filter "FullyQualifiedName~BoardLoad_500Cards"
+$env:PERF = "1"; dotnet test TeamBoard.Tests --filter "FullyQualifiedName~BoardLoad_500Cards"
 ```
 
 Three versions of the same endpoint, all returning byte-identical JSON:
@@ -105,7 +105,7 @@ Caching, verified by `SpaServingTests`: hashed bundles (`main-QX7OGRM2.js`) get 
 `loadtest/load.mjs`: 50 simulated users on one 500-card board against a real Kestrel server (Release build, Production configuration, SQL Server on the same machine). Each user repeats: 70% load the board, 20% move one of their own cards, 10% open the activity feed, then waits 100 to 300 ms.
 
 ```powershell
-dotnet build TaskManager.API -c Release
+dotnet build TeamBoard.API -c Release
 # start the API with RateLimit__AuthPermitPerMinute=100000 (setup registers 50 users from one address), then:
 node loadtest/load.mjs
 ```
@@ -122,8 +122,25 @@ The script exits non-zero if any request fails or board load p95 reaches 200 ms,
 
 **A deviation from the spec:** the plan called for a k6 script. k6 is not installed here, and a script I could not run is not evidence, so the load test is a Node script (Node 22's built-in `fetch`, no tool to install). It is about a hundred lines and ports to k6 mechanically.
 
+## On the deployed app (Azure Container Apps, 0.5 vCPU, Azure SQL free tier, Central US)
+
+Run on 2026-11-22 from a home connection with `BASE=https://... VUS=8 DURATION_S=30 CARDS=500 node loadtest/load.mjs`, after a warm-up request so the database was awake:
+
+| Endpoint | Requests | p50 | p95 | p99 | max | Errors |
+|---|---|---|---|---|---|---|
+| Board load (about 150 KB of JSON) | 337 | 246 ms | **476 ms** | 648 ms | 926 ms | 0 |
+| Card move | 102 | 246 ms | 255 ms | 459 ms | 470 ms | 0 |
+| Activity page | 44 | 234 ms | 239 ms | 243 ms | 243 ms | 0 |
+
+How to read it, honestly:
+
+- **It fails the script's 200 ms gate, and that figure is mostly distance.** One TCP connection to the app alone takes about 230 ms from the test machine (ten `curl` timings, 226 to 248 ms), so a request cannot come back faster than that. The activity request, which is a few milliseconds of server work, sits at 234 ms for exactly that reason. Subtracting that round trip, the server's share is roughly 15 ms at the median for a move or a board load.
+- **The tail is the board payload.** The board load p95 (476 ms) is about 230 ms above its median; the extra is carrying 150 KB over a long, uneven connection, plus a half-core server sharing CPU between requests. A test from a machine in the same region would separate those two, and was not run.
+- **8 users, not 50.** The deployed app keeps the default sign-up limit (10 a minute per address) and the load script registers one user per simulated user. Running 50 needs the limit raised temporarily with `RateLimit__AuthPermitPerMinute` on the app; I did not change the live configuration for a measurement.
+- **The run left data behind:** nine accounts and one 500-card board in the live database. They are harmless but visible; delete the board from the app if you want it gone.
+
 ## Not done
 
-- **A measurement on the deployed API.** The spec's target is "under 200 ms at p95 on the deployed API". There is no deployment yet, so the figure above is local: 35.9 ms. Network distance and a cloud database add to it; the headroom (about 5x) is what makes the target likely to hold, but it is not yet shown. Run `loadtest/load.mjs` with `BASE=https://...` against the real URL once it exists.
+- **The target on the deployed API is not met from this measurement point.** See the next section: from a laptop about 230 ms from the datacentre the board-load p95 was 476 ms, and a full 50-user run was not made.
 - **The "before" for compression and lazy loading.** The tables show what the app ships now. A before/after for the lazy routes would need a build with them switched off, which I did not make.
 - **Anything beyond one app server.** SignalR groups live in memory, so the live updates assume one instance. Scaling out needs a backplane (Redis or Azure SignalR); see [ARCHITECTURE.md](ARCHITECTURE.md#scaling).

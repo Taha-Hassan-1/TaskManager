@@ -57,16 +57,19 @@ import { LabelChip } from '../../shared/label-chip';
   styles: `
     :host { display: block; }
     .tile {
-      position: relative; background: var(--mat-sys-surface); border-radius: 8px; padding: 10px 12px;
-      border-left: 4px solid transparent; box-shadow: var(--mat-sys-level1); cursor: pointer;
-      &:hover, &:focus-visible { box-shadow: var(--mat-sys-level2); outline: none; }
+      position: relative; background: #fff; border-radius: 10px; padding: 12px 14px;
+      border: 1px solid rgba(16, 24, 40, 0.08); border-left: 4px solid transparent;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06); cursor: pointer;
+      transition: box-shadow 150ms ease, transform 150ms ease;
+      &:hover, &:focus-visible { box-shadow: 0 6px 16px rgba(16, 24, 40, 0.12); transform: translateY(-1px); outline: none; }
       &:focus-visible { outline: 2px solid var(--mat-sys-primary); }
+      @media (prefers-reduced-motion: reduce) { transition: none; &:hover, &:focus-visible { transform: none; } }
     }
     .priority-urgent { border-left-color: #d32f2f; }
     .priority-high { border-left-color: #f57c00; }
     .priority-low { border-left-color: #90a4ae; }
     .labels { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
-    .title { font-size: 14px; line-height: 20px; word-break: break-word; padding-right: 28px; }
+    .title { font-size: 14px; line-height: 20px; font-weight: 500; word-break: break-word; padding-right: 28px; }
     .meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; min-height: 24px; }
     .spacer { flex: 1; }
     .badge {

@@ -25,7 +25,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: 'dotnet run --project ../TaskManager.API --configuration Release --no-launch-profile',
+    command: 'dotnet run --project ../TeamBoard.API --configuration Release --no-launch-profile',
     url: `http://localhost:${port}/health/ready`,
     timeout: 180_000,
     reuseExistingServer: false,

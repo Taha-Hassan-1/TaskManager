@@ -1,10 +1,10 @@
 # TeamBoard
 
-[![CI](https://github.com/Taha-Hassan-1/TaskManager/actions/workflows/ci.yml/badge.svg)](https://github.com/Taha-Hassan-1/TaskManager/actions/workflows/ci.yml)
+[![CI](https://github.com/Taha-Hassan-1/TeamBoard/actions/workflows/ci.yml/badge.svg)](https://github.com/Taha-Hassan-1/TeamBoard/actions/workflows/ci.yml)
 
 A real-time collaborative kanban board. Teams create boards, invite people with Viewer, Editor or Owner roles, and drag cards between columns; everyone looking at a board sees changes the moment they happen. ASP.NET Core 10 Web API with hand-built token authentication and SignalR, EF Core on SQL Server, and an Angular front end with a generated API client.
 
-**Live demo:** not deployed yet. The host is chosen (Azure Container Apps plus Azure SQL's free offer) and the image, the deploy script and the guide are written ([docs/DEPLOY.md](docs/DEPLOY.md)), but the Azure steps have not been run yet. A GIF of two browsers syncing will go here once there is something to record against a deployed URL; until then, these two screenshots are Ann's and Bob's browsers after Ann added a card and dragged it, and Bob moved it on, without either page reloading:
+**Live demo:** <https://teamboard-taha.thankfulgrass-8dcd7388.centralus.azurecontainerapps.io> (Azure Container Apps plus Azure SQL's free offer; see [docs/DEPLOY.md](docs/DEPLOY.md)). It scales to zero when idle, so the first visit after a quiet spell can take about a minute to wake. A GIF of two browsers syncing is still to be recorded; until then, these two screenshots are Ann's and Bob's browsers after Ann added a card and dragged it, and Bob moved it on, without either page reloading:
 
 | Ann | Bob |
 |---|---|
@@ -37,7 +37,7 @@ You need the .NET 10 SDK, Node 22.12 or newer, and SQL Server (Express is fine).
 
 ```powershell
 # API. dotnet run applies the migrations to the configured database in Development.
-cd TaskManager.API
+cd TeamBoard.API
 dotnet user-secrets set "Jwt:Key" "<at least 32 random characters>"
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<SQL Server connection string>"
 dotnet run --launch-profile http          # http://localhost:5020, API explorer at /scalar
@@ -60,10 +60,10 @@ On an older npm (11.1 crashes on some installs) use `npx -y npm@11.6.2 install`.
 ## Tests
 
 ```powershell
-dotnet test TaskManager.slnx              # API, permission matrix, migrations, hub, hardening (needs SQL Server)
+dotnet test TeamBoard.slnx              # API, permission matrix, migrations, hub, hardening (needs SQL Server)
 cd client; npm test -- --no-watch         # Angular unit tests
 cd client; npm run e2e                    # two real browsers on the built app (uses your installed Chrome)
-$env:PERF = "1"; dotnet test TaskManager.Tests --filter Performance   # the measurements (opt-in)
+$env:PERF = "1"; dotnet test TeamBoard.Tests --filter Performance   # the measurements (opt-in)
 node loadtest/load.mjs                    # 50-user load test against a running API
 ```
 
@@ -72,8 +72,8 @@ CI runs the first three plus the image build on every push.
 ## How it is put together
 
 ```
-TaskManager.API/   feature folders: Auth, Boards, Columns, Tasks, Comments, Activity, Realtime, Infrastructure
-TaskManager.Tests/ unit, integration on a real SQL Server, hub, permission matrix, performance
+TeamBoard.API/   feature folders: Auth, Boards, Columns, Tasks, Comments, Activity, Realtime, Infrastructure
+TeamBoard.Tests/ unit, integration on a real SQL Server, hub, permission matrix, performance
 client/            Angular app, Playwright tests, and the OpenAPI document the API client is generated from
 loadtest/  docs/  Dockerfile  docker-compose.yml
 ```
@@ -91,4 +91,4 @@ loadtest/  docs/  Dockerfile  docker-compose.yml
 
 ## Status
 
-All seven milestones of the plan are built and tested (M0 to M6). **Not done:** the deployment itself (host chosen, but nothing deployed, so no live URL, no deployed performance figure, and no GIF), the Docker image has not been built on a machine with Docker, and live updates assume a single app instance. [docs/DEPLOY.md](docs/DEPLOY.md) has the checklist.
+All seven milestones of the plan are built and tested (M0 to M6). It is deployed (see the live demo above). **Not done:** the two-browser GIF, a deployed load test at the full 50 users (run with 8, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md)), and live updates assume a single app instance. [docs/DEPLOY.md](docs/DEPLOY.md) has the checklist.

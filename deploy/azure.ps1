@@ -127,6 +127,11 @@ Step 'Container Apps environment'
 Invoke-Az containerapp env create --name $envName --resource-group $group --location $Location --output none
 
 Step 'Apply the migrations (a one-off job running the same image)'
+# A job left by an earlier run may hold an old password: remove it so the new one is created with current values.
+$previous = $ErrorActionPreference; $ErrorActionPreference = 'Continue'   # the CLI's warnings go to stderr, which 5.1 treats as an error
+$jobExists = (& az containerapp job list --resource-group $group --query "[?name=='$job'].name" --output tsv 2>$null | Out-String).Trim()
+$ErrorActionPreference = $previous
+if ($jobExists) { Invoke-Az containerapp job delete --name $job --resource-group $group --yes --output none }
 Invoke-Az containerapp job create --name $job --resource-group $group --environment $envName `
   --trigger-type Manual --replica-timeout 900 --replica-retry-limit 0 `
   --image $Image --cpu 0.5 --memory 1.0Gi '--args=--migrate' `
@@ -134,9 +139,20 @@ Invoke-Az containerapp job create --name $job --resource-group $group --environm
 $execution = (Invoke-Az containerapp job start --name $job --resource-group $group --query name --output tsv | Out-String).Trim()
 if (-not $execution) { throw 'The migration job did not start (no execution name came back).' }
 Write-Host "Migration job started: $execution. Waiting..."
+$failedChecks = 0
 do {
   Start-Sleep -Seconds 10
-  $status = (Invoke-Az containerapp job execution show --name $job --resource-group $group --job-execution-name $execution --query properties.status --output tsv | Out-String).Trim()
+  try {
+    $status = (Invoke-Az containerapp job execution show --name $job --resource-group $group --job-execution-name $execution --query properties.status --output tsv | Out-String).Trim()
+    $failedChecks = 0
+  } catch {
+    # Azure's status endpoint sometimes answers "InternalServerError" for a moment; the job itself is unaffected. Ask again.
+    $failedChecks++
+    if ($failedChecks -ge 10) { throw }
+    Write-Host "  (status check hiccuped, asking again)" -ForegroundColor Yellow
+    $status = 'Unknown'
+    continue
+  }
   Write-Host "  $status"
 } while ($status -in 'Running', 'Processing', 'Unknown')
 if ($status -ne 'Succeeded') {

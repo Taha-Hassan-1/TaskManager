@@ -7,5 +7,5 @@ const run = (cmd, args, env = {}) => {
   if (r.status !== 0) process.exit(r.status ?? 1);
 };
 
-run('dotnet', ['test', '../TaskManager.Tests', '--filter', 'OpenApiContract'], { UPDATE_OPENAPI: '1' });
+run('dotnet', ['test', '../TeamBoard.Tests', '--filter', 'OpenApiContract'], { UPDATE_OPENAPI: '1' });
 run('npx', ['ng-openapi-gen']);
