@@ -2,7 +2,7 @@
 
 TeamBoard ships as **one container**: the API, serving the built Angular app, talking to a SQL Server database. Anything that can run a container, give it a SQL Server-compatible database and pass it environment variables can host it.
 
-> **Status.** The image, the compose file and the CI job that builds the image are written, but **none of it has been run**: there is no Docker on the machine this was built on. The same steps were verified without Docker: the Release build, the `--migrate` step, the API serving the built app from a folder, the health endpoints, and the end-to-end tests against that setup. **The host is chosen (below) but nothing is deployed**, so there is no live URL yet. `deploy/azure.ps1` has never been run either: it needs an Azure account, and it is written from the CLI documentation.
+> **Status.** Deployed. CI builds the image and publishes it to ghcr.io on every push to `main` (the `image` job), and `deploy/azure.ps1` has been run for real against an Azure free-trial subscription: the app is live (see the README) and the health endpoints, sign-up, boards and live updates were exercised there. `docker-compose.yml` is the one piece never run: there is no Docker on the machine this was built on, so it is written but untested locally. The deploy script needed several fixes as it met a real subscription (regions that refuse new SQL servers, PowerShell 5.1 differences, a status call that sometimes errors); they are all in the script now.
 
 ## The chosen host: Azure Container Apps and Azure SQL
 
