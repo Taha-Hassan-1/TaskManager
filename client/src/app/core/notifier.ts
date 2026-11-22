@@ -10,6 +10,7 @@ export class Notifier {
   }
 
   error(message: string): void {
-    this.snackBar.open(message, 'Dismiss', { duration: 7000, panelClass: 'snack-error' });
+    // An error carries something to act on, so it stays until the person dismisses it.
+    this.snackBar.open(message, 'Dismiss', { panelClass: 'snack-error' });
   }
 }

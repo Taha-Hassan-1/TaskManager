@@ -84,6 +84,16 @@ docker compose up --build       # http://localhost:8080
 
 Logs are JSON on stdout. A user's report of "something went wrong" comes with a `correlationId`; searching the logs for it returns every line of that request, including the exception for a 500. A 409 on a card logs both row versions.
 
+## Deploying a new version
+
+CI publishes every build of `main` as `ghcr.io/<owner>/teamboard:<commit sha>` and as `:latest`. Deploy by the **commit sha**, not `latest`: `az containerapp update` with an image name that has not changed text-wise makes no new revision, so the app silently keeps running the old build (this happened on the first redeploy).
+
+```powershell
+az containerapp update --name <name> --resource-group <name>-rg --image ghcr.io/<owner>/teamboard:<full commit sha of main>
+```
+
+Check it took: `az containerapp revision list --name <name> --resource-group <name>-rg -o table` should show a new revision with a new creation time. If the new build has database changes, run the migration job first (see the script) with the same image.
+
 ## Before going live: the checklist
 
 - [x] a host chosen (Azure Container Apps and Azure SQL); its free-tier limits re-checked on the day you deploy

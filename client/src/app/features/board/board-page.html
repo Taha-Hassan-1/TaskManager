@@ -1,5 +1,5 @@
 @if (store.board(); as board) {
-  <div class="board-page">
+  <main class="board-page">
     <header class="board-header">
       <a mat-icon-button routerLink="/boards" aria-label="Back to all boards"><mat-icon>arrow_back</mat-icon></a>
       <h1>{{ board.name }}</h1>
@@ -69,7 +69,7 @@
       @for (column of store.columns(); track column.id; let i = $index) {
         <section class="column" [attr.data-accent]="i % 6" [class.over-limit]="column.overLimit" [attr.aria-label]="column.name">
           <header class="column-header">
-            <h2>{{ column.name }}</h2>
+            <h2 [attr.title]="column.name">{{ column.name }}</h2>
             <span
               class="count"
               [class.warn]="column.overLimit"
@@ -108,7 +108,7 @@
                 (open)="openCard(card.id)"
               />
             } @empty {
-              <p class="empty">{{ store.hasActiveFilters() && column.total > 0 ? 'No cards match the filters.' : 'No cards here yet.' }}</p>
+              <p class="empty">{{ store.hasActiveFilters() && column.total > 0 ? 'No cards match the filters.' : store.canEdit() ? 'No cards yet. Add one below.' : 'No cards in this column.' }}</p>
             }
           </div>
 
@@ -141,7 +141,7 @@
     </mat-menu>
 
     <router-outlet />
-  </div>
+  </main>
 } @else {
   <p class="loading" role="status">Loading board…</p>
 }

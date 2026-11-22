@@ -56,9 +56,9 @@ export interface NameDialogResult {
       </mat-form-field>
       @if (data.wipLimit !== undefined) {
         <mat-form-field appearance="outline">
-          <mat-label>WIP limit (optional)</mat-label>
+          <mat-label>Card limit (optional)</mat-label>
           <input matInput type="number" min="1" max="1000" [(ngModel)]="wipLimit" (keydown.enter)="submit()" />
-          <mat-hint>A soft limit: the column warns when it holds more cards.</mat-hint>
+          <mat-hint>A soft limit (work in progress): the column warns when it holds more cards.</mat-hint>
         </mat-form-field>
       }
     </mat-dialog-content>
@@ -67,7 +67,7 @@ export interface NameDialogResult {
       <button mat-flat-button (click)="submit()" [disabled]="!name.trim()">{{ data.confirmText ?? 'Save' }}</button>
     </mat-dialog-actions>
   `,
-  styles: `.content { display: flex; flex-direction: column; gap: 8px; min-width: 320px; padding-top: 8px; }`,
+  styles: `.content { display: flex; flex-direction: column; gap: 8px; min-width: min(320px, 100%); padding-top: 8px; }`,
 })
 export class NameDialog {
   readonly data = inject<NameDialogData>(MAT_DIALOG_DATA);

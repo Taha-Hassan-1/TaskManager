@@ -10,6 +10,20 @@ html {
     typography: Roboto,
     density: 0,
   ));
+
+  // The look of the app, defined once. Components use these, never the raw values.
+  --tb-page-bg: linear-gradient(160deg, #eef3fb 0%, #f6f1fb 55%, #fbf3ee 100%);
+  --tb-brand-bg: linear-gradient(90deg, #0b57c9 0%, #2f6ee0 100%);
+  --tb-card-bg: #fff;
+  --tb-hairline: rgba(16, 24, 40, 0.08);
+  --tb-shadow-card: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --tb-shadow-card-hover: 0 6px 16px rgba(16, 24, 40, 0.12);
+  --tb-accent-0: #5b8def;
+  --tb-accent-1: #f2a03d;
+  --tb-accent-2: #4cb782;
+  --tb-accent-3: #a174e8;
+  --tb-accent-4: #e7678a;
+  --tb-accent-5: #3fb6c7;
 }
 
 html, body { height: 100%; }
@@ -17,9 +31,12 @@ html, body { height: 100%; }
 body {
   margin: 0;
   font-family: Roboto, 'Helvetica Neue', sans-serif;
-  background: linear-gradient(160deg, #eef3fb 0%, #f6f1fb 55%, #fbf3ee 100%) fixed;
+  background: var(--tb-page-bg) fixed;
   color: var(--mat-sys-on-surface);
 }
+
+// Scrolling panels never pass their scroll on to the page behind them.
+.cdk-overlay-pane .mat-mdc-dialog-content { overscroll-behavior: contain; }
 
 .page {
   max-width: 960px;

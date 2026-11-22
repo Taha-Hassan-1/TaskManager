@@ -1,6 +1,7 @@
 <div class="backdrop" (click)="close()" aria-hidden="true"></div>
 
-<aside class="drawer" role="dialog" aria-modal="true" aria-label="Card details">
+<!-- cdkTrapFocus: focus moves into the card when it opens, cannot wander to the board behind, and returns to the card that was opened when it closes. -->
+<aside class="drawer" role="dialog" aria-modal="true" aria-label="Card details" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
   <header class="drawer-header">
     <h2>Card</h2>
     <button mat-icon-button (click)="close()" aria-label="Close card"><mat-icon>close</mat-icon></button>
@@ -78,9 +79,9 @@
                   <mat-label>Label name</mat-label>
                   <input matInput [value]="newLabelName" (input)="newLabelName = $any($event.target).value" maxlength="50" (keydown.enter)="$event.preventDefault(); createLabel()" />
                 </mat-form-field>
-                <div class="swatches" role="radiogroup" aria-label="Label colour">
-                  @for (color of labelColors; track color) {
-                    <button type="button" class="swatch" role="radio" [attr.aria-checked]="newLabelColor === color" [style.background]="color" [class.selected]="newLabelColor === color" (click)="newLabelColor = color" [attr.aria-label]="color"></button>
+                <div class="swatches" role="group" aria-label="Label colour">
+                  @for (color of labelColors; track color.value) {
+                    <button type="button" class="swatch" [attr.aria-pressed]="newLabelColor === color.value" [style.background]="color.value" [class.selected]="newLabelColor === color.value" (click)="newLabelColor = color.value" [attr.aria-label]="color.name"></button>
                   }
                 </div>
                 <button mat-flat-button type="button" (click)="createLabel()">Add label</button>
@@ -115,8 +116,8 @@
                 } @else {
                   <p class="text">{{ comment.body }}</p>
                   <div class="comment-actions">
-                    @if (canEditComment(comment)) { <button mat-button type="button" (click)="startEdit(comment)">Edit</button> }
-                    @if (canDeleteComment(comment)) { <button mat-button type="button" (click)="deleteComment(comment)">Delete</button> }
+                    @if (canEditComment(comment)) { <button mat-button type="button" (click)="startEdit(comment)" [attr.aria-label]="'Edit comment by ' + comment.authorName">Edit</button> }
+                    @if (canDeleteComment(comment)) { <button mat-button type="button" (click)="deleteComment(comment)" [attr.aria-label]="'Delete comment by ' + comment.authorName">Delete</button> }
                   </div>
                 }
               </div>

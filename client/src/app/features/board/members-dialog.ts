@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -13,6 +13,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { toProblem } from '../../core/errors';
 import { Notifier } from '../../core/notifier';
 import { Avatar } from '../../shared/avatar';
+import { ConfirmDialog } from '../../shared/dialogs';
 import { BoardStore } from './board.store';
 
 @Component({
@@ -71,9 +72,9 @@ import { BoardStore } from './board.store';
     <mat-dialog-actions align="end"><button mat-button mat-dialog-close>Close</button></mat-dialog-actions>
   `,
   styles: `
-    .members { list-style: none; margin: 0; padding: 0; min-width: 420px; }
-    li { display: flex; align-items: center; gap: 12px; padding: 6px 0; }
-    .who { display: flex; flex-direction: column; flex: 1; min-width: 0; span { font-size: 12px; color: var(--mat-sys-on-surface-variant); } }
+    .members { list-style: none; margin: 0; padding: 0; min-width: min(420px, 100%); }
+    li { display: flex; align-items: center; gap: 12px; padding: 6px 0; flex-wrap: wrap; }
+    .who { display: flex; flex-direction: column; flex: 1; min-width: 140px; overflow-wrap: anywhere; span { font-size: 12px; color: var(--mat-sys-on-surface-variant); } }
     .role { width: 120px; }
     .role-text { color: var(--mat-sys-on-surface-variant); }
     h3 { margin: 24px 0 4px; font-weight: 500; }
@@ -88,6 +89,7 @@ export class MembersDialog {
   private readonly api = inject(TeamBoardApi);
   private readonly notifier = inject(Notifier);
   private readonly router = inject(Router);
+  private readonly dialog = inject(MatDialog);
 
   email = '';
   role: BoardRole = 'Editor';
@@ -118,21 +120,29 @@ export class MembersDialog {
     }
   }
 
-  async remove(member: MemberDto): Promise<void> {
-    try {
-      await this.api.removeMember(this.store.boardId(), member.userId);
-      await this.store.reload();
-    } catch (e) {
-      this.notifier.error(toProblem(e).message);
-    }
+  remove(member: MemberDto): void {
+    this.confirm(`Remove ${member.username}?`, `${member.username} loses access to this board. You can invite them again later.`, 'Remove member', async () => {
+      try {
+        await this.api.removeMember(this.store.boardId(), member.userId);
+        await this.store.reload();
+      } catch (e) {
+        this.notifier.error(toProblem(e).message);
+      }
+    });
   }
 
-  async leave(member: MemberDto): Promise<void> {
-    try {
-      await this.api.removeMember(this.store.boardId(), member.userId);
-      await this.router.navigate(['/boards']);
-    } catch (e) {
-      this.notifier.error(toProblem(e).message);
-    }
+  leave(member: MemberDto): void {
+    this.confirm('Leave this board?', 'You lose access to it, and an owner has to invite you again to get back in.', 'Leave board', async () => {
+      try {
+        await this.api.removeMember(this.store.boardId(), member.userId);
+        await this.router.navigate(['/boards']);
+      } catch (e) {
+        this.notifier.error(toProblem(e).message);
+      }
+    });
+  }
+
+  private confirm(title: string, message: string, confirmText: string, onConfirm: () => Promise<void>): void {
+    this.dialog.open(ConfirmDialog, { data: { title, message, confirmText } }).afterClosed().subscribe((yes) => yes && void onConfirm());
   }
 }

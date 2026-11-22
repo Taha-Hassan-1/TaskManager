@@ -52,18 +52,22 @@ import { Notifier } from '../../core/notifier';
   styles: `
     h1 { font-weight: 600; font-size: 28px; letter-spacing: -0.01em; margin: 0 0 16px; }
     .create { display: flex; gap: 12px; align-items: center; margin-bottom: 24px; flex-wrap: wrap; }
-    .boards { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+    .boards { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 16px; }
     .board-link {
+      min-width: 0;
       display: flex; flex-direction: column; gap: 6px; padding: 20px; min-height: 64px;
-      background: #fff; border-radius: 14px; text-decoration: none; color: inherit;
-      border: 1px solid rgba(16, 24, 40, 0.08); border-top: 4px solid var(--mat-sys-primary);
-      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+      background: var(--tb-card-bg); border-radius: 14px; text-decoration: none; color: inherit;
+      border: 1px solid var(--tb-hairline); border-top: 4px solid var(--mat-sys-primary);
+      box-shadow: var(--tb-shadow-card);
       transition: box-shadow 150ms ease, transform 150ms ease;
-      &:hover, &:focus-visible { box-shadow: 0 8px 20px rgba(16, 24, 40, 0.12); transform: translateY(-2px); outline: none; }
-      @media (prefers-reduced-motion: reduce) { transition: none; &:hover, &:focus-visible { transform: none; } }
+      &:focus-visible { outline: 2px solid var(--mat-sys-primary); outline-offset: 2px; }
+      @media (hover: hover) { &:hover { box-shadow: 0 8px 20px rgba(16, 24, 40, 0.12); } }
+      @media (hover: hover) and (prefers-reduced-motion: no-preference) { &:hover { transform: translateY(-2px); } }
+      @media (prefers-reduced-motion: reduce) { transition: none; }
     }
-    .name { font-size: 18px; font-weight: 500; }
+    .name { font-size: 18px; font-weight: 500; overflow-wrap: anywhere; text-wrap: balance; }
     .meta, .empty { color: var(--mat-sys-on-surface-variant); }
+    .meta { font-variant-numeric: tabular-nums; }
   `,
 })
 export class BoardsPage {
