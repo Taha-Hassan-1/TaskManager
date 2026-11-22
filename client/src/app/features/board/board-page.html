@@ -66,8 +66,8 @@
 
     <div class="workspace">
     <div class="columns" cdkDropListGroup>
-      @for (column of store.columns(); track column.id) {
-        <section class="column" [class.over-limit]="column.overLimit" [attr.aria-label]="column.name">
+      @for (column of store.columns(); track column.id; let i = $index) {
+        <section class="column" [attr.data-accent]="i % 6" [class.over-limit]="column.overLimit" [attr.aria-label]="column.name">
           <header class="column-header">
             <h2>{{ column.name }}</h2>
             <span

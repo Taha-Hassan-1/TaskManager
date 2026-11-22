@@ -16,10 +16,10 @@ RUN npm run build
 # 2. The API
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api
 WORKDIR /src
-COPY TaskManager.API/TaskManager.API.csproj TaskManager.API/
-RUN dotnet restore TaskManager.API/TaskManager.API.csproj
-COPY TaskManager.API/ TaskManager.API/
-RUN dotnet publish TaskManager.API/TaskManager.API.csproj --configuration Release --no-restore --output /app
+COPY TeamBoard.API/TeamBoard.API.csproj TeamBoard.API/
+RUN dotnet restore TeamBoard.API/TeamBoard.API.csproj
+COPY TeamBoard.API/ TeamBoard.API/
+RUN dotnet publish TeamBoard.API/TeamBoard.API.csproj --configuration Release --no-restore --output /app
 
 # 3. What actually runs: the runtime only, as a non-root user
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
@@ -32,4 +32,4 @@ ENV ASPNETCORE_URLS=http://+:8080 \
 # Behind the platform's proxy (which ends TLS) the app needs to trust its forwarded headers; see docs/DEPLOY.md.
 USER $APP_UID
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "TaskManager.API.dll"]
+ENTRYPOINT ["dotnet", "TeamBoard.API.dll"]

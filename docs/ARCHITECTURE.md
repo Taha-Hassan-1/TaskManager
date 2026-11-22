@@ -29,15 +29,15 @@ flowchart LR
 ## Layout
 
 ```
-TaskManager.slnx
-TaskManager.API/            one project, organised by feature
+TeamBoard.slnx
+TeamBoard.API/            one project, organised by feature
   Auth/                     register, login, refresh, logout, token service, options
   Boards/                   boards and members
   Columns/  Tasks/  Comments/  Activity/
   Realtime/                 the hub, group membership, the broadcaster
   Infrastructure/           board permissions, events, position strategy, hardening, JSON config
   Data/  Models/  Migrations/
-TaskManager.Tests/          unit, integration (real SQL Server), hub and permission-matrix tests
+TeamBoard.Tests/          unit, integration (real SQL Server), hub and permission-matrix tests
 client/                     Angular app, its Playwright tests, and the OpenAPI document it is generated from
 loadtest/  docs/  Dockerfile  docker-compose.yml
 ```

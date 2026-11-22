@@ -8,7 +8,7 @@ client/playwright-report/
 .git/
 .github/
 .claude/
-TaskManager.Tests/
+TeamBoard.Tests/
 loadtest/
 docs/
 *.md

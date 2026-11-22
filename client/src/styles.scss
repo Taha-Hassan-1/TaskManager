@@ -17,7 +17,7 @@ html, body { height: 100%; }
 body {
   margin: 0;
   font-family: Roboto, 'Helvetica Neue', sans-serif;
-  background: var(--mat-sys-surface-container-low);
+  background: linear-gradient(160deg, #eef3fb 0%, #f6f1fb 55%, #fbf3ee 100%) fixed;
   color: var(--mat-sys-on-surface);
 }
 

@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.1",
   "info": {
-    "title": "TaskManager.API | v1",
+    "title": "TeamBoard.API | v1",
     "version": "1.0.0"
   },
   "servers": [

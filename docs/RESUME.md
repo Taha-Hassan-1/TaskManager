@@ -16,7 +16,7 @@ For someone reading this repository to judge it. Each claim points at something 
 
 ## Resume bullets
 
-Numbers are from this repository; the board-load figures are measured locally, not on a deployed system.
+Numbers are from this repository; the board-load figures are measured locally. A smaller run against the deployed app is in [PERFORMANCE.md](PERFORMANCE.md); from a machine about 230 ms away it did not meet the 200 ms target, mostly because of distance.
 
 - Built **TeamBoard**, a real-time kanban app: ASP.NET Core 10 Web API, EF Core and SQL Server, SignalR, and an Angular 21 front end using a generated OpenAPI client.
 - Implemented JWT access tokens with rotating, hashed refresh tokens (reuse detection) and board-level role authorization, covered by a permission-matrix integration test that exercises every endpoint as every role.
@@ -25,4 +25,4 @@ Numbers are from this repository; the board-load figures are measured locally, n
 
 ## The README plan, as built
 
-Pitch, screenshots of two browsers in sync, how to run, tests and CI, performance numbers, architecture with diagrams, decision records, and this page. Still to add once deployed: the live link and a GIF of two browsers syncing.
+Pitch, screenshots of two browsers in sync, how to run, tests and CI, performance numbers, architecture with diagrams, decision records, and this page. Live link: https://teamboard-taha.thankfulgrass-8dcd7388.centralus.azurecontainerapps.io. Still to add: a GIF of two browsers syncing.

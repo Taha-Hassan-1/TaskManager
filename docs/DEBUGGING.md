@@ -6,7 +6,7 @@ Real bugs from building this project: what it looked like, how it was found, wha
 
 - **Every request has a correlation id.** It is the `X-Correlation-Id` response header, the `correlationId` field of every error body, and a property on every log line (the logs are one JSON object per line in production). Give a user's error to `grep` and you have the whole request.
 - **A conflict is logged with both versions.** A 409 on a card logs the `RowVersion` the client sent and the one in the database, so "two people moved the same card" can be reproduced.
-- **What SQL a request runs** is visible to tests through `SqlCapture` (`TaskManager.Tests/Perf/PerfKit.cs`), which is how the statement budgets in [PERFORMANCE.md](PERFORMANCE.md) are enforced.
+- **What SQL a request runs** is visible to tests through `SqlCapture` (`TeamBoard.Tests/Perf/PerfKit.cs`), which is how the statement budgets in [PERFORMANCE.md](PERFORMANCE.md) are enforced.
 - **Startup fails loudly.** A missing JWT key, issuer or database string stops the app at boot with the field named, rather than on the first login.
 
 ---
