@@ -65,9 +65,9 @@ import { LabelChip } from '../../shared/label-chip';
       @media (hover: hover) and (prefers-reduced-motion: no-preference) { &:hover { transform: translateY(-1px); } }
       @media (prefers-reduced-motion: reduce) { transition: none; }
     }
-    .priority-urgent { border-left-color: #d32f2f; }
-    .priority-high { border-left-color: #f57c00; }
-    .priority-low { border-left-color: #90a4ae; }
+    .priority-urgent { border-left-color: var(--tb-urgent); }
+    .priority-high { border-left-color: var(--tb-high); }
+    .priority-low { border-left-color: var(--tb-low); }
     .labels { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
     .open {
       display: block; width: 100%; padding: 0 28px 0 0; margin: 0; border: 0; background: none; color: inherit;
@@ -82,7 +82,7 @@ import { LabelChip } from '../../shared/label-chip';
       mat-icon { font-size: 16px; width: 16px; height: 16px; }
     }
     .badge.overdue { color: var(--mat-sys-error); font-weight: 500; }
-    .badge.priority { color: #b85c00; font-weight: 500; }
+    .badge.priority { color: var(--tb-warn-fg); font-weight: 500; }
     .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     // Above the tile-wide button, so the menu stays clickable.
     .menu { position: absolute; top: 2px; right: 0; z-index: 1; opacity: 0.7; &:hover, &:focus-visible { opacity: 1; } }

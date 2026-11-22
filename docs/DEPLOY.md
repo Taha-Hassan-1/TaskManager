@@ -97,9 +97,16 @@ Check it took: `az containerapp revision list --name <name> --resource-group <na
 ## Before going live: the checklist
 
 - [x] a host chosen (Azure Container Apps and Azure SQL); its free-tier limits re-checked on the day you deploy
-- [ ] `ForwardedHeaders__Enabled=true`, and the app **not** reachable except through the platform's proxy
-- [ ] a strong `Jwt__Key` that is not the one used anywhere else
-- [ ] a backup plan for the database
+- [x] `ForwardedHeaders__Enabled=true`, and the app **not** reachable except through the platform's proxy (checked on the live app: the variable is set, the only way in is Container Apps' external HTTPS ingress to port 8080, and plain HTTP is not allowed)
+- [x] a strong `Jwt__Key` that is not the one used anywhere else (`deploy/azure.ps1` makes 48 random bytes per deployment and stores them as a Container Apps secret, never in a file)
+- [x] a backup plan for the database: Azure SQL takes automatic backups, and the live database keeps **7 days** of point-in-time restore on locally redundant storage (checked with `az sql db str-policy show`). That covers a bad deploy or a deleted board; it does not cover losing the Azure region or the subscription, and there is no long-term copy. To restore, create a new database from a point in time (`az sql db restore`), then point the app's connection secret at it
+- [x] a monthly budget alert in Azure Cost Management on the subscription (it warns by email; it does not stop anything)
 - [x] `loadtest/load.mjs` run against the real URL (`BASE=https://...`), with 8 users because the default sign-up limit is 10 a minute per address; the result is in [PERFORMANCE.md](PERFORMANCE.md)
 - [x] the README's live link filled in
 - [ ] the two-browser GIF
+
+## The free trial ends on 20 December 2026
+
+The subscription this runs on is an Azure **free trial**: $200 of credit, no charges while it lasts, and **all services pause when the trial ends or the credit runs out**. On 20 December 2026 the site goes offline unless the subscription is upgraded to pay-as-you-go.
+
+Upgrading does not make the site expensive: the SQL database stays on its free offer and the container scales to zero, so the bill should stay near zero. That is also when the budget alert starts to matter. Decide before the date: upgrade to keep it live (Subscriptions, then the subscription, then Upgrade), or let it pause and, if the site is wanted again later, redeploy with `deploy/azure.ps1` on a new subscription.

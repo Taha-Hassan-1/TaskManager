@@ -61,7 +61,7 @@ import { Notifier } from '../../core/notifier';
       box-shadow: var(--tb-shadow-card);
       transition: box-shadow 150ms ease, transform 150ms ease;
       &:focus-visible { outline: 2px solid var(--mat-sys-primary); outline-offset: 2px; }
-      @media (hover: hover) { &:hover { box-shadow: 0 8px 20px rgba(16, 24, 40, 0.12); } }
+      @media (hover: hover) { &:hover { box-shadow: var(--tb-shadow-card-hover); } }
       @media (hover: hover) and (prefers-reduced-motion: no-preference) { &:hover { transform: translateY(-2px); } }
       @media (prefers-reduced-motion: reduce) { transition: none; }
     }

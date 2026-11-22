@@ -33,11 +33,11 @@ import { MatIconModule } from '@angular/material/icon';
   styles: `
     :host { display: block; padding: 4px 10px 10px; }
     .open { width: 100%; justify-content: flex-start; color: var(--mat-sys-on-surface-variant); border-radius: 10px; }
-    .open:hover { background: rgba(16, 24, 40, 0.05); color: var(--mat-sys-primary); }
+    .open:hover { background: var(--tb-hover); color: var(--mat-sys-primary); }
     textarea {
       width: 100%; box-sizing: border-box; resize: vertical; padding: 10px 12px; border-radius: 10px; font: inherit;
-      border: 1px solid var(--mat-sys-outline-variant); background: #fff; color: inherit;
-      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+      border: 1px solid var(--mat-sys-outline-variant); background: var(--tb-card-bg); color: inherit;
+      box-shadow: var(--tb-shadow-card);
       &:focus { outline: 2px solid var(--mat-sys-primary); outline-offset: -1px; border-color: transparent; }
     }
     .actions { display: flex; gap: 8px; margin-top: 6px; }

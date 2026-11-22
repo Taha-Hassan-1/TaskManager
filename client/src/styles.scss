@@ -1,7 +1,12 @@
 @use '@angular/material' as mat;
 
+// Light and dark. Material's own colours switch through the standard `color-scheme` property; the app's extra
+// colours (everything named --tb-*) are defined once for each scheme here, and components only use the names.
+//
+//   no data-theme attribute  -> follow the operating system (light dark)
+//   data-theme="light|dark"  -> the person's own choice (the toggle in the top bar), see core/theme.ts
 html {
-  color-scheme: light;
+  color-scheme: light dark;
   @include mat.theme((
     color: (
       primary: mat.$azure-palette,
@@ -11,13 +16,38 @@ html {
     density: 0,
   ));
 
-  // The look of the app, defined once. Components use these, never the raw values.
+  // ---- light ----
   --tb-page-bg: linear-gradient(160deg, #eef3fb 0%, #f6f1fb 55%, #fbf3ee 100%);
   --tb-brand-bg: linear-gradient(90deg, #0b57c9 0%, #2f6ee0 100%);
+  --tb-header-bg: rgba(255, 255, 255, 0.85);
   --tb-card-bg: #fff;
+  --tb-column-bg: rgba(255, 255, 255, 0.62);
+  --tb-column-border: rgba(255, 255, 255, 0.9);
   --tb-hairline: rgba(16, 24, 40, 0.08);
+  --tb-hover: rgba(16, 24, 40, 0.05);
   --tb-shadow-card: 0 1px 2px rgba(16, 24, 40, 0.06);
   --tb-shadow-card-hover: 0 6px 16px rgba(16, 24, 40, 0.12);
+  --tb-shadow-column: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 12px rgba(16, 24, 40, 0.05);
+  --tb-shadow-pop: 0 10px 30px rgba(16, 24, 40, 0.12);
+  // Pills tinted with a column's accent: the tint is mixed into the surface, the text into black or white.
+  --tb-pill-bg-base: white;
+  --tb-pill-bg-pct: 18%;
+  --tb-pill-fg-base: black;
+  --tb-pill-fg-pct: 50%;
+  // Status colours, each a background and a text colour that pair to at least 4.5:1.
+  --tb-warn-bg: #fff3e0;
+  --tb-warn-fg: #a85200;
+  --tb-warn-text: #5d3a00;
+  --tb-warn-border: #ffcc80;
+  --tb-ok-bg: #e6f4ea;
+  --tb-ok-fg: #1e6b3a;
+  --tb-dot-ok: #2e7d32;
+  --tb-dot-wait: #f9a825;
+  --tb-dot-bad: #c62828;
+  --tb-urgent: #d32f2f;
+  --tb-high: #f57c00;
+  --tb-low: #90a4ae;
+  // Accents of the board columns.
   --tb-accent-0: #5b8def;
   --tb-accent-1: #f2a03d;
   --tb-accent-2: #4cb782;
@@ -25,6 +55,45 @@ html {
   --tb-accent-4: #e7678a;
   --tb-accent-5: #3fb6c7;
 }
+
+html[data-theme='light'] { color-scheme: light; }
+html[data-theme='dark'] { color-scheme: dark; }
+
+@mixin dark-tokens {
+  --tb-page-bg: linear-gradient(160deg, #0e1320 0%, #14122a 55%, #1b1418 100%);
+  --tb-brand-bg: linear-gradient(90deg, #0a2e6e 0%, #1a4aa8 100%);
+  --tb-header-bg: rgba(20, 25, 38, 0.85);
+  --tb-card-bg: #1f2536;
+  --tb-column-bg: rgba(255, 255, 255, 0.05);
+  --tb-column-border: rgba(255, 255, 255, 0.09);
+  --tb-hairline: rgba(255, 255, 255, 0.1);
+  --tb-hover: rgba(255, 255, 255, 0.08);
+  --tb-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --tb-shadow-card-hover: 0 6px 16px rgba(0, 0, 0, 0.55);
+  --tb-shadow-column: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+  --tb-shadow-pop: 0 10px 30px rgba(0, 0, 0, 0.55);
+  --tb-pill-bg-base: #161b28;
+  --tb-pill-bg-pct: 28%;
+  --tb-pill-fg-base: white;
+  --tb-pill-fg-pct: 45%;
+  --tb-warn-bg: #3d2b10;
+  --tb-warn-fg: #ffb74d;
+  --tb-warn-text: #ffe0b2;
+  --tb-warn-border: #6b4a1a;
+  --tb-ok-bg: #16301f;
+  --tb-ok-fg: #86d9a0;
+  --tb-dot-ok: #5cc77a;
+  --tb-dot-wait: #f9c74f;
+  --tb-dot-bad: #ef6b6b;
+  --tb-urgent: #ef6b6b;
+  --tb-high: #ffa040;
+  --tb-low: #7f93a0;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme='light']) { @include dark-tokens; }
+}
+html[data-theme='dark'] { @include dark-tokens; }
 
 html, body { height: 100%; }
 

@@ -34,7 +34,7 @@ form { display: flex; flex-direction: column; gap: 4px; }
 .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 12px; }
 
 .conflict {
-  background: #fff3e0; color: #5d3a00; border-radius: 8px; padding: 12px; margin-bottom: 12px;
+  background: var(--tb-warn-bg); color: var(--tb-warn-text); border-radius: 8px; padding: 12px; margin-bottom: 12px;
   p { margin: 0 0 8px; }
   .conflict-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 }

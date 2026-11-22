@@ -3,6 +3,14 @@
     <a routerLink="/boards" class="brand"><mat-icon>view_kanban</mat-icon> TeamBoard</a>
     <span class="spacer"></span>
     <span class="user">{{ auth.user()?.username }}</span>
+    <button
+      mat-icon-button
+      (click)="theme.cycle()"
+      [attr.aria-label]="'Theme: ' + themeName[theme.choice()] + '. Switch to ' + themeName[theme.next()] + '.'"
+      [title]="'Theme: ' + themeName[theme.choice()]"
+    >
+      <mat-icon aria-hidden="true">{{ themeIcon[theme.choice()] }}</mat-icon>
+    </button>
     <button mat-icon-button (click)="auth.logout()" aria-label="Sign out"><mat-icon>logout</mat-icon></button>
   </mat-toolbar>
 }
