@@ -103,7 +103,7 @@ Check it took: `az containerapp revision list --name <name> --resource-group <na
 - [x] a monthly budget alert in Azure Cost Management on the subscription (it warns by email; it does not stop anything)
 - [x] `loadtest/load.mjs` run against the real URL (`BASE=https://...`), with 8 users because the default sign-up limit is 10 a minute per address; the result is in [PERFORMANCE.md](PERFORMANCE.md)
 - [x] the README's live link filled in
-- [ ] the two-browser GIF
+- [x] the two-browser GIF (`docs/img/demo.gif`, and `demo-dark.gif`), recorded against the live site
 
 ## The free trial ends on 20 December 2026
 

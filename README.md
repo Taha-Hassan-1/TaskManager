@@ -4,7 +4,11 @@
 
 A real-time collaborative kanban board. Teams create boards, invite people with Viewer, Editor or Owner roles, and drag cards between columns; everyone looking at a board sees changes the moment they happen. ASP.NET Core 10 Web API with hand-built token authentication and SignalR, EF Core on SQL Server, and an Angular front end with a generated API client.
 
-**Live demo:** <https://teamboard-taha.thankfulgrass-8dcd7388.centralus.azurecontainerapps.io> (Azure Container Apps plus Azure SQL's free offer; see [docs/DEPLOY.md](docs/DEPLOY.md)). It scales to zero when idle, so the first visit after a quiet spell can take about a minute to wake. A GIF of two browsers syncing is still to be recorded; until then, these two screenshots are Ann's and Bob's browsers after Ann added a card and dragged it, and Bob moved it on, without either page reloading:
+**Live demo:** <https://teamboard-taha.thankfulgrass-8dcd7388.centralus.azurecontainerapps.io>, running on Azure Container Apps and Azure SQL's free offer ([how it is deployed](docs/DEPLOY.md)). **It is hosted on an Azure free trial that ends on 20 December 2026, after which the demo is paused to keep the cost at zero.** It can be brought back in about 15 minutes with `deploy/azure.ps1` (one command; see the deploy guide), so ask if you would like to see it running. While it is up it scales to zero when idle, so the first visit after a quiet spell can take about a minute to wake. Below, two browsers (Ann and Bob, on separate accounts) share one board. Ann adds a card and Bob sees it; Bob adds one and Ann sees it; each drags a card to Doing and the other window follows, with no page reloaded. ([The same in the dark theme](docs/img/demo-dark.gif).)
+
+![Two browsers on one board: cards added and dragged in one window appear in the other](docs/img/demo.gif)
+
+Stills of the same idea, with the activity feed open on Bob's side:
 
 | Ann | Bob |
 |---|---|
@@ -16,6 +20,7 @@ A real-time collaborative kanban board. Teams create boards, invite people with 
 - **Live updates.** A second browser sees a card appear, change and move without reloading; an activity feed shows who did what; the connection survives drops and catches up on reconnect.
 - **Concurrent edits are handled, not ignored.** Two people editing the same card get a clear choice instead of a silent overwrite.
 - **Permissions on every board.** Viewers read, Editors change cards, Owners manage members; a non-member cannot even tell a board exists.
+- **Light and dark themes.** Follows the system setting, with a switch in the top bar; every colour pair is measured for contrast.
 - **Secure by construction.** Short-lived tokens in memory, rotating refresh tokens that detect theft, a strict Content-Security-Policy, rate limits, no secrets in the repository.
 
 ## The numbers
@@ -91,4 +96,4 @@ loadtest/  docs/  Dockerfile  docker-compose.yml
 
 ## Status
 
-All seven milestones of the plan are built and tested (M0 to M6). It is deployed (see the live demo above). **Not done:** the two-browser GIF, a deployed load test at the full 50 users (run with 8, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md)), and live updates assume a single app instance. [docs/DEPLOY.md](docs/DEPLOY.md) has the checklist.
+All seven milestones of the plan are built and tested (M0 to M6). It was deployed to Azure (see the live demo note above; the free trial it runs on ends on 20 December 2026). **Not done:** a deployed load test at the full 50 users (run with 8, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md)), and live updates assume a single app instance. [docs/DEPLOY.md](docs/DEPLOY.md) has the checklist.

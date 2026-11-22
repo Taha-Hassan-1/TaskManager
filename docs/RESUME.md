@@ -25,4 +25,4 @@ Numbers are from this repository; the board-load figures are measured locally. A
 
 ## The README plan, as built
 
-Pitch, screenshots of two browsers in sync, how to run, tests and CI, performance numbers, architecture with diagrams, decision records, and this page. Live link: https://teamboard-taha.thankfulgrass-8dcd7388.centralus.azurecontainerapps.io. Still to add: a GIF of two browsers syncing.
+Pitch, a GIF and screenshots of two browsers in sync, how to run, tests and CI, performance numbers, architecture with diagrams, decision records, and this page. Live link: https://teamboard-taha.thankfulgrass-8dcd7388.centralus.azurecontainerapps.io (hosted on an Azure free trial that ends on 20 December 2026; it can be redeployed with one script on request).
